@@ -1,0 +1,2151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CivicResolve — AI-Powered Civic Issue Platform</title>
+
+<!-- Leaflet CSS & JS for Live Real-World Map (with graceful offline fallback) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script>
+// Embedded High-Resolution Matching Civic Issue SVGs (100% Offline & Exact Match Guaranteed)
+const FALLBACK_SVGS = {
+  pothole: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='440' height='260' viewBox='0 0 440 260'><rect width='440' height='260' fill='%231e293b'/><line x1='0' y1='130' x2='440' y2='130' stroke='%23facc15' stroke-dasharray='28,20' stroke-width='6'/><path d='M80 150 L140 145 L180 170 L260 160 L320 180' stroke='%230f172a' stroke-width='4' fill='none'/><ellipse cx='220' cy='155' rx='105' ry='48' fill='%23090d16' stroke='%23020617' stroke-width='5'/><ellipse cx='220' cy='158' rx='80' ry='32' fill='%23000000'/><path d='M140 140 Q210 185 300 150' stroke='%23475569' stroke-width='3' fill='none'/><rect x='10' y='12' width='240' height='32' rx='6' fill='%23ef4444'/><text x='20' y='33' fill='%23ffffff' font-family='system-ui,sans-serif' font-size='13' font-weight='800'>⚠️ HAZARDOUS ROAD CRATER</text></svg>",
+
+  garbage: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='440' height='260' viewBox='0 0 440 260'><rect width='440' height='260' fill='%23e2e8f0'/><rect x='0' y='180' width='440' height='80' fill='%2394a3b8'/><rect x='110' y='80' width='220' height='130' rx='10' fill='%2315803d'/><path d='M90 70 L350 70 L320 40 L120 40 Z' fill='%23166534'/><circle cx='170' cy='60' r='26' fill='%23f59e0b'/><circle cx='250' cy='52' r='30' fill='%23ef4444'/><circle cx='210' cy='46' r='24' fill='%233b82f6'/><path d='M140 15 Q150 2 160 15 Q170 28 180 15' stroke='%2378350f' stroke-width='3' fill='none'/><path d='M230 15 Q240 2 250 15 Q260 28 270 15' stroke='%2378350f' stroke-width='3' fill='none'/><rect x='10' y='12' width='270' height='32' rx='6' fill='%23f59e0b'/><text x='20' y='33' fill='%23ffffff' font-family='system-ui,sans-serif' font-size='13' font-weight='800'>🗑️ OVERFLOWING DUMPSTER</text></svg>",
+
+  water: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='440' height='260' viewBox='0 0 440 260'><rect width='440' height='260' fill='%23334155'/><rect x='0' y='170' width='440' height='90' fill='%231e293b'/><ellipse cx='220' cy='180' rx='160' ry='45' fill='%230284c7' opacity='0.75'/><rect x='40' y='165' width='360' height='30' fill='%23475569' rx='4'/><ellipse cx='220' cy='165' rx='35' ry='16' fill='%230369a1'/><path d='M220 165 Q170 30 220 20 Q270 30 220 165 Z' fill='%2338bdf8' opacity='0.9'/><path d='M220 165 Q140 60 170 50 Q210 90 220 165 Z' fill='%237dd3fc' opacity='0.8'/><path d='M220 165 Q300 60 270 50 Q230 90 220 165 Z' fill='%237dd3fc' opacity='0.8'/><rect x='10' y='12' width='260' height='32' rx='6' fill='%230284c7'/><text x='20' y='33' fill='%23ffffff' font-family='system-ui,sans-serif' font-size='13' font-weight='800'>💧 WATER MAIN PIPE BURST</text></svg>",
+
+  light: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='440' height='260' viewBox='0 0 440 260'><rect width='440' height='260' fill='%23050811'/><polygon points='0,260 440,260 300,160 140,160' fill='%230f172a'/><path d='M160 230 L160 60 Q160 40 180 40 L220 40' stroke='%23475569' stroke-width='10' fill='none' stroke-linecap='round'/><rect x='215' y='32' width='35' height='16' rx='3' fill='%23334155' transform='rotate(15 220 40)'/><circle cx='235' cy='52' r='8' fill='%231e293b' stroke='%23ef4444' stroke-width='2'/><path d='M235 48 L242 58 L238 62 L248 72' stroke='%23f59e0b' stroke-width='3' fill='none'/><path d='M230 52 L220 60 L226 65 L218 75' stroke='%23ef4444' stroke-width='3' fill='none'/><rect x='10' y='12' width='270' height='32' rx='6' fill='%23ef4444'/><text x='20' y='33' fill='%23ffffff' font-family='system-ui,sans-serif' font-size='13' font-weight='800'>💡 BROKEN STREETLIGHT (DARK)</text><text x='220' y='240' fill='%2394a3b8' font-family='sans-serif' font-size='13' text-anchor='middle' font-weight='bold'>Pitch Dark Lane — Collision Hazard</text></svg>",
+
+  after_light: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='440' height='260' viewBox='0 0 440 260'><defs><radialGradient id='lightGlow' cx='50%' cy='20%' r='80%'><stop offset='0%' stop-color='%23fef08a' stop-opacity='0.9'/><stop offset='40%' stop-color='%23fde047' stop-opacity='0.4'/><stop offset='100%' stop-color='%230f172a' stop-opacity='0'/></radialGradient></defs><rect width='440' height='260' fill='%23090d16'/><polygon points='235,48 40,260 400,260' fill='url(%23lightGlow)'/><polygon points='0,260 440,260 290,160 150,160' fill='%231e293b' opacity='0.7'/><line x1='220' y1='160' x2='220' y2='260' stroke='%23facc15' stroke-width='5' stroke-dasharray='20,15'/><path d='M160 230 L160 60 Q160 40 180 40 L220 40' stroke='%2394a3b8' stroke-width='10' fill='none' stroke-linecap='round'/><rect x='215' y='34' width='36' height='14' rx='3' fill='%23e2e8f0'/><circle cx='233' cy='48' r='10' fill='%23ffffff'/><rect x='10' y='12' width='270' height='32' rx='6' fill='%2316a34a'/><text x='20' y='33' fill='%23ffffff' font-family='system-ui,sans-serif' font-size='13' font-weight='800'>✔ REPAIRED &amp; ILLUMINATED</text><rect x='330' y='12' width='100' height='24' rx='4' fill='%2315803d'/><text x='380' y='28' fill='%23ffffff' font-family='sans-serif' font-size='11' text-anchor='middle' font-weight='bold'>Verified Fix</text></svg>",
+
+  drain: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='440' height='260' viewBox='0 0 440 260'><rect width='440' height='260' fill='%23334155'/><rect x='0' y='60' width='440' height='50' fill='%2364748b'/><line x1='0' y1='110' x2='440' y2='110' stroke='%231e293b' stroke-width='4'/><rect x='0' y='110' width='440' height='150' fill='%231e293b'/><ellipse cx='180' cy='160' rx='70' ry='36' fill='%23020617' stroke='%230f172a' stroke-width='6'/><ellipse cx='260' cy='150' rx='58' ry='28' fill='%23475569' stroke='%231e293b' stroke-width='5'/><path d='M130 165 Q180 200 240 180 Q320 230 400 190 Q300 150 220 160 Z' fill='%2378350f' opacity='0.85'/><ellipse cx='170' cy='165' rx='45' ry='20' fill='%23451a03'/><circle cx='160' cy='160' r='6' fill='%23a16207'/><circle cx='185' cy='170' r='8' fill='%23ca8a04'/><circle cx='210' cy='162' r='5' fill='%23eab308'/><rect x='10' y='12' width='260' height='32' rx='6' fill='%23ef4444'/><text x='20' y='33' fill='%23ffffff' font-family='system-ui,sans-serif' font-size='13' font-weight='800'>⚠️ SEWAGE DRAIN OVERFLOW</text><text x='220' y='245' fill='%23fca5a5' font-family='sans-serif' font-size='12' text-anchor='middle' font-weight='bold'>Biological Waste Spilling On Public Road</text></svg>",
+
+  after_drain: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='440' height='260' viewBox='0 0 440 260'><rect width='440' height='260' fill='%23334155'/><rect x='0' y='60' width='440' height='50' fill='%2394a3b8'/><line x1='0' y1='110' x2='440' y2='110' stroke='%23475569' stroke-width='4'/><rect x='0' y='110' width='440' height='150' fill='%231e293b'/><ellipse cx='220' cy='165' rx='75' ry='38' fill='%23475569' stroke='%230f172a' stroke-width='7'/><ellipse cx='220' cy='165' rx='55' ry='26' fill='%23334155' stroke='%2364748b' stroke-width='3' stroke-dasharray='10,6'/><text x='220' y='171' fill='%2394a3b8' font-family='sans-serif' font-size='12' font-weight='bold' text-anchor='middle'>CITY DRAINAGE</text><rect x='10' y='12' width='260' height='32' rx='6' fill='%2316a34a'/><text x='20' y='33' fill='%23ffffff' font-family='system-ui,sans-serif' font-size='13' font-weight='800'>✔ SEWAGE SEALED &amp; CLEANED</text><rect x='330' y='12' width='100' height='24' rx='4' fill='%2315803d'/><text x='380' y='28' fill='%23ffffff' font-family='sans-serif' font-size='11' text-anchor='middle' font-weight='bold'>Verified Fix</text></svg>",
+
+  after_road: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='440' height='260' viewBox='0 0 440 260'><rect width='440' height='260' fill='%231e293b'/><line x1='0' y1='130' x2='440' y2='130' stroke='%23fbbf24' stroke-dasharray='28,18' stroke-width='8'/><rect x='100' y='105' width='240' height='50' fill='%230f172a' rx='6'/><line x1='100' y1='130' x2='340' y2='130' stroke='%23fbbf24' stroke-dasharray='28,18' stroke-width='8'/><rect x='10' y='12' width='260' height='32' rx='6' fill='%2316a34a'/><text x='20' y='33' fill='%23ffffff' font-family='system-ui,sans-serif' font-size='13' font-weight='800'>✔ ROAD RESURFACED &amp; FIXED</text><rect x='330' y='12' width='100' height='24' rx='4' fill='%2315803d'/><text x='380' y='28' fill='%23ffffff' font-family='sans-serif' font-size='11' text-anchor='middle' font-weight='bold'>Verified Fix</text></svg>",
+
+  after_clean: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='440' height='260' viewBox='0 0 440 260'><rect width='440' height='260' fill='%23f1f5f9'/><rect x='0' y='180' width='440' height='80' fill='%23e2e8f0'/><rect x='140' y='80' width='160' height='120' fill='%2315803d' rx='8'/><path d='M120 70 L320 70 L300 50 L140 50 Z' fill='%23166534'/><circle cx='220' cy='140' r='20' fill='%2322c55e'/><path d='M210 140 L217 147 L230 133' stroke='%23ffffff' stroke-width='4' fill='none'/><rect x='10' y='12' width='260' height='32' rx='6' fill='%2316a34a'/><text x='20' y='33' fill='%23ffffff' font-family='system-ui,sans-serif' font-size='13' font-weight='800'>✔ DUMPSTER CLEARED &amp; SWEPT</text><rect x='330' y='12' width='100' height='24' rx='4' fill='%2315803d'/><text x='380' y='28' fill='%23ffffff' font-family='sans-serif' font-size='11' text-anchor='middle' font-weight='bold'>Verified Fix</text></svg>",
+
+  after_water: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='440' height='260' viewBox='0 0 440 260'><rect width='440' height='260' fill='%23334155'/><rect x='0' y='170' width='440' height='90' fill='%231e293b'/><rect x='40' y='165' width='360' height='30' fill='%23475569' rx='4'/><rect x='190' y='150' width='60' height='60' fill='%230284c7' rx='8'/><circle cx='220' cy='180' r='14' fill='%23ffffff'/><rect x='10' y='12' width='260' height='32' rx='6' fill='%2316a34a'/><text x='20' y='33' fill='%23ffffff' font-family='system-ui,sans-serif' font-size='13' font-weight='800'>✔ PIPE REPAIRED &amp; VALVE SEALED</text><rect x='330' y='12' width='100' height='24' rx='4' fill='%2315803d'/><text x='380' y='28' fill='%23ffffff' font-family='sans-serif' font-size='11' text-anchor='middle' font-weight='bold'>Verified Fix</text></svg>"
+};
+</script>
+
+<style>
+:root {
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --tx: #0f172a;
+  --mut: #64748b;
+  --bd: #e2e8f0;
+  --ac: #6366f1;
+  --p-crit: #ef4444;
+  --p-high: #f97316;
+  --p-med: #0284c7;
+  --p-low: #10b981;
+  --grad-primary: linear-gradient(135deg, #6366f1, #ec4899, #f59e0b);
+  --grad-hero: linear-gradient(135deg, #4f46e5, #06b6d4);
+  --grad-card: linear-gradient(145deg, #ffffff, #f8fafc);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #090d16;
+    --card: #111827;
+    --tx: #f8fafc;
+    --mut: #94a3b8;
+    --bd: #1f2937;
+    --grad-card: linear-gradient(145deg, #111827, #0f172a);
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: radial-gradient(circle at 10% 0%, rgba(99,102,241,.18), transparent 40%),
+              radial-gradient(circle at 90% 10%, rgba(236,72,153,.15), transparent 35%),
+              radial-gradient(circle at 50% 100%, rgba(6,182,212,.18), transparent 45%),
+              var(--bg);
+  background-attachment: fixed;
+  color: var(--tx);
+  font: 14.5px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+}
+.w { max-width: 1100px; margin: 0 auto; padding: 20px 16px 50px; }
+
+/* Vibrant Header */
+.hd { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 22px; }
+.logo-box { display: flex; align-items: center; gap: 12px; }
+.logo-icon {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: var(--grad-primary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; box-shadow: 0 8px 20px rgba(99,102,241,.4);
+  animation: pulse-glow 3s infinite alternate;
+}
+@keyframes pulse-glow {
+  0% { transform: scale(1); filter: drop-shadow(0 4px 10px rgba(99,102,241,.4)); }
+  100% { transform: scale(1.03); filter: drop-shadow(0 8px 24px rgba(236,72,153,.6)); }
+}
+h1 {
+  font-size: 27px; font-weight: 800;
+  background: var(--grad-primary);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  line-height: 1.2; letter-spacing: -0.5px;
+}
+.tagline { color: var(--mut); font-size: 13px; font-weight: 600; }
+.user-status { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.karma-badge {
+  background: linear-gradient(135deg, rgba(245,158,11,.15), rgba(236,72,153,.15));
+  border: 1.5px solid #f59e0b;
+  padding: 6px 14px; border-radius: 99px; font-size: 12.5px; font-weight: 700; color: #f59e0b;
+  display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 10px rgba(245,158,11,.2);
+}
+.ai-pill {
+  padding: 6px 14px; border-radius: 99px; font-size: 12.5px; font-weight: 700;
+  background: rgba(16,185,129,.15); color: #10b981; border: 1.5px solid #10b981;
+  display: flex; align-items: center; gap: 6px;
+}
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981; animation: blink 1.5s infinite; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* Nav Tabs */
+nav { display: flex; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; }
+nav button {
+  background: var(--card); color: var(--tx); border: 1.5px solid var(--bd);
+  padding: 10px 20px; border-radius: 12px; cursor: pointer; font: inherit; font-weight: 700;
+  display: flex; align-items: center; gap: 8px; transition: all .2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,.03);
+}
+nav button:hover { border-color: var(--ac); transform: translateY(-1px); }
+nav button.on {
+  background: var(--grad-primary); color: #fff;
+  border-color: transparent; box-shadow: 0 6px 18px rgba(99,102,241,.35);
+}
+
+/* Cards & Styling */
+.card {
+  background: var(--card); border: 1px solid var(--bd); border-radius: 16px;
+  padding: 20px; margin-bottom: 18px; box-shadow: 0 6px 20px rgba(0,0,0,.04);
+  position: relative; overflow: hidden;
+}
+.card.accent { border-top: 4px solid #6366f1; }
+.card.ai {
+  border-left: 4px solid #06b6d4;
+  background: linear-gradient(135deg, rgba(6,182,212,.08), transparent 60%), var(--card);
+}
+h2 { font-size: 18px; font-weight: 800; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.sub, .meta { color: var(--mut); font-size: 13px; }
+
+/* Form Controls */
+label { display: block; font-size: 12.5px; font-weight: 700; color: var(--mut); margin: 14px 0 5px; text-transform: uppercase; letter-spacing: .5px; }
+input, select, textarea {
+  width: 100%; padding: 11px 14px; border: 1.5px solid var(--bd); border-radius: 10px;
+  background: var(--bg); color: var(--tx); font: inherit; font-size: 14px; transition: all .2s;
+}
+input:focus, select:focus, textarea:focus { outline: none; border-color: #6366f1; background: var(--card); box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+textarea { min-height: 90px; resize: vertical; }
+
+/* Buttons */
+.btn {
+  background: var(--grad-primary); color: #fff; border: 0;
+  padding: 12px 24px; border-radius: 10px; cursor: pointer; font: inherit; font-weight: 700;
+  box-shadow: 0 4px 14px rgba(236,72,153,.3); transition: all .2s;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn:hover { opacity: .95; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(236,72,153,.4); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+.btn.s {
+  background: var(--bg); color: var(--tx); border: 1.5px solid var(--bd);
+  box-shadow: none; padding: 7px 14px; font-size: 12.5px; font-weight: 600; border-radius: 8px;
+}
+.btn.s:hover { border-color: var(--ac); color: var(--ac); }
+.btn.live-gps {
+  background: linear-gradient(135deg, #06b6d4, #3b82f6); color: #fff; border: 0;
+  box-shadow: 0 3px 10px rgba(6,182,212,.3); font-weight: 700;
+}
+.btn.upvote {
+  background: linear-gradient(135deg, rgba(99,102,241,.15), rgba(236,72,153,.15));
+  color: var(--ac); border: 1.5px solid rgba(99,102,241,.3);
+  padding: 6px 14px; border-radius: 99px; font-size: 12.5px; cursor: pointer; font-weight: 700;
+}
+.btn.upvote:hover { background: var(--grad-primary); color: #fff; border-color: transparent; }
+
+/* Grids */
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+@media (max-width: 720px) { .row, .row-3 { grid-template-columns: 1fr; } }
+
+/* Photo Carousel & Presets */
+.photo-presets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 10px; }
+@media (max-width: 720px) { .photo-presets { grid-template-columns: repeat(3, 1fr); } }
+.preset-card {
+  border: 2px solid var(--bd); border-radius: 12px; overflow: hidden; cursor: pointer;
+  background: var(--bg); transition: all .2s; text-align: center;
+}
+.preset-card:hover, .preset-card.active { border-color: var(--ac); transform: scale(1.03); box-shadow: 0 4px 14px rgba(99,102,241,.25); }
+.preset-card img { width: 100%; height: 75px; object-fit: cover; display: block; }
+.preset-card span { display: block; font-size: 11px; font-weight: 700; padding: 4px; color: var(--tx); }
+
+.preview-box {
+  display: flex; gap: 14px; align-items: center; margin-top: 12px; padding: 10px;
+  background: rgba(99,102,241,.05); border: 1.5px dashed var(--ac); border-radius: 12px;
+}
+img.th-preview { width: 120px; height: 90px; border-radius: 10px; object-fit: cover; border: 2px solid #fff; box-shadow: 0 4px 10px rgba(0,0,0,.15); }
+
+/* Live Map Containers */
+#live-map {
+  width: 100%; height: 280px; border-radius: 14px; border: 2px solid var(--bd);
+  margin-top: 8px; z-index: 10;
+}
+#admin-map {
+  width: 100%; height: 320px; border-radius: 14px; border: 2px solid var(--bd);
+  margin-top: 8px; z-index: 10;
+}
+.map-fallback-svg {
+  width: 100%; height: 280px; border-radius: 14px; border: 2px solid var(--bd);
+  background: linear-gradient(135deg, rgba(99,102,241,.08), rgba(6,182,212,.08));
+  display: block; cursor: crosshair;
+}
+
+/* Glowing Priority Badges */
+.pill {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 12px;
+  border-radius: 99px; font-size: 12px; font-weight: 800; border: 1.5px solid currentColor;
+}
+.Critical { color: #ef4444; background: rgba(239,68,68,.14); box-shadow: 0 0 10px rgba(239,68,68,.3); }
+.High { color: #f97316; background: rgba(249,115,22,.14); box-shadow: 0 0 8px rgba(249,115,22,.25); }
+.Medium { color: #0284c7; background: rgba(2,132,199,.14); box-shadow: 0 0 8px rgba(2,132,199,.25); }
+.Low { color: #10b981; background: rgba(16,185,129,.14); box-shadow: 0 0 8px rgba(16,185,129,.25); }
+.st-Reported { color: #d97706; background: rgba(217,119,6,.14); }
+.st-InProgress { color: #6366f1; background: rgba(99,102,241,.14); }
+.st-Resolved { color: #16a34a; background: rgba(22,163,74,.14); }
+
+/* Progress & Breakdown Bars */
+.steps { display: flex; gap: 6px; margin: 12px 0; }
+.steps div { flex: 1; height: 7px; border-radius: 4px; background: var(--bd); }
+.steps div.f { background: linear-gradient(90deg, #10b981, #6366f1); box-shadow: 0 0 8px rgba(99,102,241,.4); }
+.bar { display: flex; height: 9px; border-radius: 5px; background: var(--bd); overflow: hidden; margin-top: 6px; }
+.bar span { display: block; height: 100%; }
+
+/* Stats Counters */
+.stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+@media (max-width: 720px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+.stats .card { margin: 0; text-align: center; padding: 16px 8px; border-top-width: 4px; }
+.stats b { font-size: 28px; font-weight: 900; display: block; line-height: 1.1; }
+.stats .card:nth-child(1) { border-top-color: #6366f1; } .stats .card:nth-child(1) b { color: #6366f1; }
+.stats .card:nth-child(2) { border-top-color: #f59e0b; } .stats .card:nth-child(2) b { color: #f59e0b; }
+.stats .card:nth-child(3) { border-top-color: #0284c7; } .stats .card:nth-child(3) b { color: #0284c7; }
+.stats .card:nth-child(4) { border-top-color: #10b981; } .stats .card:nth-child(4) b { color: #10b981; }
+.stats .card:nth-child(5) { border-top-color: #ef4444; } .stats .card:nth-child(5) b { color: #ef4444; }
+
+/* Before / After Photo Comparison Cards in Tracking Feed */
+.photo-gallery { display: flex; gap: 14px; flex-wrap: wrap; margin: 12px 0; }
+.photo-item { position: relative; border-radius: 12px; overflow: hidden; border: 2px solid var(--bd); box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+.photo-item img { width: 220px; height: 150px; object-fit: cover; display: block; }
+.photo-badge {
+  position: absolute; top: 8px; left: 8px; font-size: 11px; font-weight: 800;
+  padding: 3px 8px; border-radius: 6px; text-transform: uppercase; color: #fff;
+}
+.photo-badge.before { background: rgba(239,68,68,.9); }
+.photo-badge.after { background: rgba(16,185,129,.9); }
+
+/* Table Styling */
+.tw { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 740px; }
+th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--bd); vertical-align: top; font-size: 13.5px; }
+th { color: var(--mut); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; font-weight: 800; }
+
+/* Camera Modal */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 99999;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+  backdrop-filter: blur(4px);
+}
+.modal-box {
+  background: var(--card); border-radius: 18px; max-width: 540px; width: 100%;
+  padding: 20px; position: relative; box-shadow: 0 20px 40px rgba(0,0,0,.4);
+  border: 1.5px solid var(--bd);
+}
+#cam-video { width: 100%; border-radius: 14px; background: #000; max-height: 350px; object-fit: cover; }
+.cam-controls { display: flex; justify-content: center; gap: 12px; margin-top: 14px; }
+
+/* Toast Notifications */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; background: #0f172a; color: #fff;
+  padding: 14px 22px; border-radius: 12px; font-size: 13.5px; font-weight: 700;
+  box-shadow: 0 12px 30px rgba(0,0,0,.3); z-index: 100000;
+  display: flex; align-items: center; gap: 10px; border-left: 4px solid #10b981;
+}
+
+/* Voice waveform */
+.waveform { display: none; align-items: center; gap: 3px; height: 22px; margin-left: 8px; }
+.waveform.active { display: flex; }
+.wave-bar {
+  width: 3.5px; height: 100%; background: #ec4899; border-radius: 3px;
+  animation: wave 0.9s infinite ease-in-out;
+}
+.wave-bar:nth-child(2) { animation-delay: .2s; }
+.wave-bar:nth-child(3) { animation-delay: .4s; }
+.wave-bar:nth-child(4) { animation-delay: .6s; }
+@keyframes wave { 0%, 100% { height: 5px; } 50% { height: 22px; } }
+
+/* AI analysis panel */
+.ai-panel { margin-top: 12px; padding: 12px 14px; border: 1.5px solid rgba(6,182,212,.35); border-left: 4px solid #06b6d4; border-radius: 12px; background: linear-gradient(135deg, rgba(6,182,212,.07), transparent 60%); }
+.ai-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.ai-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+@media (max-width: 720px) { .ai-grid { grid-template-columns: 1fr 1fr; } }
+.ai-grid .k { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--mut); font-weight: 800; }
+.ai-grid b { font-size: 13.5px; }
+/* Analytics charts */
+.hbar-row { display: grid; grid-template-columns: 150px 1fr 38px; gap: 10px; align-items: center; margin: 9px 0; font-size: 12.5px; }
+.hbar-row.wide { grid-template-columns: 150px 1fr 74px; }
+@media (max-width: 720px) { .hbar-row, .hbar-row.wide { grid-template-columns: 104px 1fr 56px; } }
+.hbar-label { font-weight: 700; }
+.hbar-track { display: flex; height: 16px; background: var(--bd); border-radius: 8px; overflow: hidden; }
+.hbar-track span { display: block; height: 100%; }
+.hbar-track.sla { position: relative; overflow: visible; }
+.hbar-track.sla span { border-radius: 8px 0 0 8px; }
+.sla-mark { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; background: var(--tx); }
+.hbar-val { font-weight: 800; text-align: right; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; font-size: 12px; color: var(--mut); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: middle; }
+.role-toggle { display: inline-flex; background: var(--card); border: 1.5px solid var(--bd); border-radius: 99px; padding: 3px; }
+.role-toggle button {
+  border: 0; background: transparent; color: var(--tx); font: inherit; font-size: 12.5px; font-weight: 700;
+  padding: 5px 14px; border-radius: 99px; cursor: pointer; transition: all .2s;
+}
+.role-toggle button.on { background: var(--grad-primary); color: #fff; box-shadow: 0 3px 10px rgba(99,102,241,.35); }
+.hide { display: none !important; }
+.late { color: var(--p-crit); font-weight: 800; font-size: 12px; }
+
+/* Critical Space & Layout Fix for Cards & Headers */
+.is {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-wrap: wrap !important;
+  margin-bottom: 8px !important;
+}
+.is b {
+  font-size: 16px !important;
+  color: var(--tx) !important;
+  flex: 1 1 220px !important;
+}
+.is span {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Dispatch Banner & Authority Tag Styles */
+.dispatch-banner {
+  background: rgba(99, 102, 241, 0.06);
+  border: 1.5px solid rgba(99, 102, 241, 0.22);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-top: 14px;
+}
+.crew-tag {
+  display: inline-block;
+  background: #e0e7ff;
+  color: #4338ca;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 6px;
+}
+.btn.call {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 700 !important;
+}
+.btn.call:hover {
+  background: #059669 !important;
+}
+.btn.wa {
+  background: #25d366 !important;
+  color: #ffffff !important;
+  text-decoration: none !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+.btn.wa:hover {
+  background: #128c7e !important;
+}
+.btn.em {
+  background: #4f46e5 !important;
+  color: #ffffff !important;
+  text-decoration: none !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+.btn.em:hover {
+  background: #4338ca !important;
+}
+
+/* Call Simulator Modal Overlay */
+.call-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(15, 23, 42, 0.82);
+  backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 10000;
+}
+.call-modal-overlay.hide { display: none !important; }
+.call-card {
+  background: #0f172a;
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  padding: 28px 24px;
+  width: 90%; max-width: 380px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  animation: slide-up 0.3s ease;
+}
+@keyframes slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.call-avatar {
+  width: 72px; height: 72px;
+  background: linear-gradient(135deg, #10b981, #06b6d4);
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 34px;
+  box-shadow: 0 0 24px rgba(16, 185, 129, 0.4);
+}
+.btn-end-call {
+  width: 58px; height: 58px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: white;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  margin-top: 18px;
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.5);
+  transition: transform 0.2s, background 0.2s;
+}
+.btn-end-call:hover {
+  background: #dc2626;
+  transform: scale(1.08);
+}
+</style>
+</head>
+<body>
+<div class="w">
+  <!-- Header with Civic Brand & Karma Badges -->
+  <header class="hd">
+    <div class="logo-box">
+      <div class="logo-icon">🏙️</div>
+      <div>
+        <h1>CivicResolve</h1>
+        <div class="tagline">AI-Powered Civic Issue Reporting &amp; Rapid Municipal Resolution Platform</div>
+      </div>
+    </div>
+    <div class="user-status">
+      <div class="role-toggle" id="role-toggle" title="Switch between citizen and municipal admin view">
+        <button type="button" data-role="citizen" class="on">👤 Citizen</button>
+        <button type="button" data-role="admin">🏛️ Admin</button>
+      </div>
+      <div class="karma-badge" title="Earned by reporting & verifying civic issues">
+        ⭐ <span id="user-karma">85</span> Civic Karma
+      </div>
+      <div class="ai-pill" id="aimode">
+        <span class="status-dot"></span>
+        <span id="aimode-text">AI: Local Engine (Ready)</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav id="nav">
+    <button data-v="report" class="on">📝 Report Issue</button>
+    <button data-v="track">🔍 Live Complaints Feed (<span id="track-count">5</span>)</button>
+    <button data-v="admin">🏛️ Municipal Admin &amp; Hotspots</button>
+  </nav>
+
+  <!-- ======================== VIEW 1: REPORT ISSUE ======================== -->
+  <section id="v-report">
+    <div class="card accent">
+      <h2>📸 1. Attach Evidence Photo (Camera, File, or Instant Real Photo)</h2>
+      <p class="sub">Take a live photo, upload from device, or select a realistic pre-loaded issue photo below for testing.</p>
+
+      <!-- Instant Real Civic Photo Selection (Vivid real-world imagery!) -->
+      <div class="photo-presets">
+        <div class="preset-card active" data-preset="pothole" title="Click to attach road crater photo">
+          <img id="img-preset-pothole" alt="Pothole">
+          <span>🕳️ Road Crater</span>
+        </div>
+        <div class="preset-card" data-preset="garbage" title="Click to attach waste dumpster photo">
+          <img id="img-preset-garbage" alt="Garbage">
+          <span>🗑️ Garbage Dump</span>
+        </div>
+        <div class="preset-card" data-preset="water" title="Click to attach water leak photo">
+          <img id="img-preset-water" alt="Water Leak">
+          <span>💧 Pipe Burst</span>
+        </div>
+        <div class="preset-card" data-preset="light" title="Click to attach dark streetlight photo">
+          <img id="img-preset-light" alt="Broken Streetlight">
+          <span>💡 Broken Light</span>
+        </div>
+        <div class="preset-card" data-preset="drain" title="Click to attach sewage overflow photo">
+          <img id="img-preset-drain" alt="Sewage Spill">
+          <span>⚠️ Sewage Leak</span>
+        </div>
+      </div>
+
+      <details class="meta" style="margin-top:8px">
+        <summary style="cursor:pointer; font-weight:700">📷 Photo credits &amp; using your own photos</summary>
+        <div style="margin-top:6px">
+          Sample photos load from Wikimedia Commons: pothole and rubbish pile by Alan Stanton (CC BY-SA 2.0), streetlight by Robert Lamb via Geograph (CC BY-SA 2.0), sewer overflow by the U.S. EPA, water pipe from Commons (see its file page for the author). To use your own, put <code>pothole.jpg</code>, <code>garbage.jpg</code>, <code>water.jpg</code>, <code>light.jpg</code> and <code>drain.jpg</code> in an <code>images/</code> folder next to this file; they take priority. If no photo can load (for example offline), built-in illustrations are used instead.
+        </div>
+      </details>
+
+      <!-- Action buttons for live camera & files -->
+      <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap">
+        <button class="btn s" type="button" id="btn-open-cam">📷 Open Live Camera</button>
+        <button class="btn s" type="button" onclick="$('f').click()">📁 Browse Files</button>
+        <input type="file" id="f" accept="image/*" capture="environment" class="hide">
+      </div>
+
+      <!-- Attached preview -->
+      <div class="preview-box" id="pv-box">
+        <img id="pv" class="th-preview" alt="Attached evidence">
+        <div>
+          <b style="color:var(--tx)">Active Evidence Photo Attached</b>
+          <div class="sub" id="pv-caption">Road crater photo ready for Gemini multimodal AI analysis.</div>
+          <button class="btn s" type="button" id="btn-clear-img" style="margin-top:6px; color:var(--p-crit)">Remove Photo</button>
+        </div>
+      </div>
+
+      <!-- Title Input -->
+      <label>2. Issue Title</label>
+      <input id="t" value="Deep dangerous pothole near bus terminal" placeholder="e.g. Hazardous deep pothole causing vehicle skids on 4th Main">
+
+      <!-- Multilingual Speech & Description -->
+      <label>3. Description (Speak in Regional Language or Type)</label>
+      <textarea id="d" placeholder="Describe the hazard, how long it has persisted, and if schools/hospitals are nearby...">Deep road crater on the main lane where two-wheelers are skidding. Urgent repair needed before dark.</textarea>
+
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px">
+        <select id="lg" style="max-width:180px">
+          <option value="en-IN">English (India)</option>
+          <option value="ta-IN">தமிழ் (Tamil)</option>
+          <option value="hi-IN">हिन्दी (Hindi)</option>
+          <option value="te-IN">తెలుగు (Telugu)</option>
+          <option value="kn-IN">ಕನ್ನಡ (Kannada)</option>
+          <option value="ml-IN">മലയാളം (Malayalam)</option>
+        </select>
+        <button class="btn s" id="mic" type="button">🎤 Speak to Record</button>
+        <div class="waveform" id="waveform">
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+        </div>
+      </div>
+
+      <!-- Quick sample voice chips for instant demo without speaking -->
+      <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px">
+        <span class="sub" style="font-weight:700; width:100%; margin-bottom:2px">🌐 1-Click Regional Language &amp; Voice Test Chips:</span>
+        <button type="button" class="btn s" data-lang="ta-IN" data-title="இருட்டான தெரு — பழுதடைந்த தெருவிளக்கு" data-phrase="தெரு விளக்கு எரியவில்லை, இருட்டாக இருப்பதால் மக்கள் பயப்படுகிறார்கள்" data-preset="light" style="font-size:11px; padding:4px 8px">தமிழ்: தெருவிளக்கு</button>
+        <button type="button" class="btn s" data-lang="ta-IN" data-title="நிரம்பி வழியும் குப்பை தொட்டி" data-phrase="குப்பை தொட்டி நிரம்பி வழிகிறது துர்நாற்றம் அடிக்கிறது" data-preset="garbage" style="font-size:11px; padding:4px 8px">தமிழ்: குப்பை</button>
+        <button type="button" class="btn s" data-lang="hi-IN" data-title="सड़क पर गहरा खतरनाक गड्ढा" data-phrase="सड़क पर बहुत बड़ा गड्ढा है गाड़ियां फिसल रही हैं और दुर्घटना का खतरा है" data-preset="pothole" style="font-size:11px; padding:4px 8px">हिंदी: सड़क गड्ढा</button>
+        <button type="button" class="btn s" data-lang="te-IN" data-title="పగిలిన మంచినీటి పైపు లైన్" data-phrase="మంచినీటి పైపు పగిలిపోయి రోడ్డుపై నీరు భారీగా వృధాగా ప్రవహిస్తోంది" data-preset="water" style="font-size:11px; padding:4px 8px">తెలుగు: నీటి లీక్</button>
+        <button type="button" class="btn s" data-lang="kn-IN" data-title="ಉಕ್ಕಿ ಹರಿಯುತ್ತಿರುವ ಒಳಚರಂಡಿ" data-phrase="ಚರಂಡಿ ಮುಚ್ಚಳ ತೆರೆದಿದ್ದು ಕೊಳಚೆ ನೀರು ರಸ್ತೆಯಲ್ಲಿ ಹರಿಯುತ್ತಿದೆ" data-preset="drain" style="font-size:11px; padding:4px 8px">ಕನ್ನಡ: ಚರಂಡಿ</button>
+        <button type="button" class="btn s" data-lang="ml-IN" data-title="കേടായ തെരുവ് വിളക്ക്" data-phrase="തെരുവ് വിളക്ക് കേടായി കിടക്കുന്നു രാത്രിയിൽ വഴി കാണാൻ പറ്റുന്നില്ല" data-preset="light" style="font-size:11px; padding:4px 8px">മലയാളം: തെരുവ് വിളക്ക്</button>
+      </div>
+      <div id="translation-preview-box" class="hide" style="margin-top:8px; padding:8px 12px; background:rgba(99,102,241,.08); border-radius:8px; border:1px solid rgba(99,102,241,.25); font-size:12.5px">
+        <b>🌐 Live English Translation:</b> <span id="translation-preview-text" style="color:var(--tx); font-weight:600"></span>
+      </div>
+
+      <!-- Location & Live Interactive Map -->
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label>4. Location Landmark &amp; Live GPS</label>
+          <div style="display:flex; gap:8px">
+            <input id="l" value="" placeholder="Detected automatically, or type an address">
+            <button class="btn live-gps" type="button" id="btn-live-gps" style="white-space:nowrap">📍 Live GPS</button>
+          </div>
+        </div>
+        <div>
+          <label>5. Problem Category</label>
+          <select id="c">
+            <option value="">✨ Let AI Classify Automatically</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Interactive Map Display -->
+      <label>📍 Live Map Pin (Drag marker or click anywhere on the real city map)</label>
+      <div id="live-map"></div>
+      <svg id="svg-map-fallback" class="map-fallback-svg hide" viewBox="0 0 100 100"></svg>
+      <div id="loc-banner" style="margin-top:8px;padding:12px 14px;border:2px solid var(--ac);border-radius:12px;background:var(--card);font-size:14px">
+        <div style="font-weight:800">📍 Selected location</div>
+        <div id="loc-addr" style="margin-top:4px;font-weight:700">Detecting your location… (or tap the map)</div>
+        <div class="meta" style="margin-top:4px">Coordinates: <b><span id="coords-display">—</span></b> · <a id="loc-link" href="#" target="_blank" rel="noopener" style="color:var(--ac);font-weight:700">Open in Google Maps ↗</a></div>
+      </div>
+
+      <!-- Submit Button -->
+      <button class="btn" id="go" style="width:100%; margin-top:18px; font-size:16px; padding:14px">🚀 Submit Complaint &amp; Run AI Triage</button>
+      <div class="sub" id="msg" style="margin-top:8px; font-weight:700"></div>
+    </div>
+
+    <!-- AI Triage Result Banner -->
+    <div id="res"></div>
+
+    <!-- Optional Gemini Key -->
+    <details class="card">
+      <summary class="sub" style="cursor:pointer; font-weight:700">⚙️ Google Gemini API Key Settings (Live Cloud vs Local Engine)</summary>
+      <div style="margin-top:10px">
+        <label>Gemini API Key</label>
+        <input id="key" type="password" placeholder="Paste your Gemini API key (starts with AQ. or AIza)">
+        <div class="sub" style="margin-top:6px">
+          <b>Hybrid Architecture:</b> If a key is entered, Gemini AI processes multimodal photo understanding, translations, and before/after verification. If left blank, the built-in local engine provides instant offline classification and prioritization so your demo never fails!
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- ======================== VIEW 2: LIVE COMPLAINTS FEED ======================== -->
+  <section id="v-track" class="hide">
+    <div class="card accent">
+      <h2>🔎 Track Your Complaint by Ticket ID</h2>
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        <input id="tid" placeholder="Enter ticket ID, e.g. CR-1003" style="flex:1 1 220px; text-transform:uppercase">
+        <button class="btn" id="btn-track" type="button">Track</button>
+      </div>
+      <div id="my-tickets" style="margin-top:10px; display:flex; gap:6px; align-items:center; flex-wrap:wrap"></div>
+    </div>
+    <div id="track-result"></div>
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>Search Issues</label>
+          <input id="q" placeholder="Search by ID, keyword, landmark, or category...">
+        </div>
+        <div>
+          <label>Filter by Status</label>
+          <select id="fs">
+            <option value="">All Statuses (Reported, In Progress, Resolved)</option>
+            <option>Reported</option>
+            <option>In Progress</option>
+            <option>Resolved</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div id="tl"></div>
+  </section>
+
+  <!-- ======================== VIEW 3: ADMIN & HOTSPOTS ======================== -->
+  <section id="v-admin" class="hide">
+    <div class="stats" id="stats"></div>
+
+    <div class="row">
+      <div class="card">
+        <h2>🗺️ City Hotspot Spatial Heatmap</h2>
+        <div id="admin-map"></div>
+        <svg id="admin-svg-fallback" class="map-fallback-svg hide" viewBox="0 0 100 100"></svg>
+        <div class="meta" style="margin-top:8px">Circle Radius = Citizen reports. Red Heat Glow = High priority cluster.</div>
+      </div>
+      <div class="card ai">
+        <h2>🧠 Gemini AI Municipal Strategy</h2>
+        <div id="ins"></div>
+        <button class="btn s" id="gi" style="margin-top:12px">✨ Refresh AI Strategy Report</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="card">
+        <h2>📊 Complaints by Category</h2>
+        <div id="chart-cat"></div>
+      </div>
+      <div class="card">
+        <h2>⏱️ Open Complaints: Average Age vs SLA</h2>
+        <div id="chart-sla"></div>
+      </div>
+    </div>
+
+    <div class="card tw">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px">
+        <h2 style="margin:0">📋 Municipal Complaint Management &amp; Triage</h2>
+        <button class="btn s" id="btn-csv" type="button">⬇ Export CSV</button>
+      </div>
+      <div class="sub" id="amsg" style="margin-bottom:8px"></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Complaint &amp; Photo</th>
+            <th>Urgency &amp; Priority Score</th>
+            <th>Assigned Authority</th>
+            <th>Resolution Action</th>
+            <th>Admin</th>
+          </tr>
+        </thead>
+        <tbody id="ab"></tbody>
+      </table>
+    </div>
+    <input type="file" id="pf" accept="image/*" class="hide">
+  </section>
+</div>
+
+<!-- ======================== LIVE CAMERA WEBCAM MODAL ======================== -->
+<div class="modal-overlay hide" id="cam-modal">
+  <div class="modal-box">
+    <h2>📸 Live Camera Viewfinder</h2>
+    <video id="cam-video" autoplay playsinline muted></video>
+    <canvas id="cam-canvas" class="hide"></canvas>
+    <div class="cam-controls">
+      <button class="btn" id="btn-snap">⚡ Capture Photo</button>
+      <button class="btn s" id="btn-close-cam">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== LIVE CALL SIMULATOR MODAL ======================== -->
+<div class="call-modal-overlay hide" id="call-sim-modal">
+  <div class="call-card">
+    <div class="call-avatar">👤</div>
+    <div style="font-size:12px; text-transform:uppercase; letter-spacing:1px; color:#10b981; font-weight:800; margin-bottom:4px">
+      ● Connecting to Authority Helpline…
+    </div>
+    <h3 id="call-officer-name" style="font-size:19px; margin-bottom:4px">Er. Rajesh Sharma</h3>
+    <div id="call-dept-name" style="color:#94a3b8; font-size:13px; margin-bottom:12px">Roads &amp; Highways Department</div>
+    <div id="call-phone-num" style="font-size:16px; font-weight:700; color:#38bdf8; letter-spacing:.5px">+91 98450 12345</div>
+    
+    <div style="background:rgba(255,255,255,.06); border-radius:12px; padding:12px; margin-top:16px; font-size:12px; color:#cbd5e1; text-align:left">
+      <div><b>Incident Ticket:</b> <span id="call-ticket-id">CR-1001</span></div>
+      <div><b>GPS Location:</b> <span id="call-loc">4th Main Road, Bus Stand</span></div>
+      <div style="margin-top:6px; color:#10b981">✔ Direct line bridged. Officer audio active.</div>
+    </div>
+
+    <button type="button" class="btn-end-call" onclick="endCall()" title="End Call">📞</button>
+    <div style="font-size:11px; color:#94a3b8; margin-top:8px">Tap red button to end call</div>
+  </div>
+</div>
+
+<script>
+// Base Utilities
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+// Department Registry
+
+const DEPTS_INFO = {
+  "Roads & Highways Department": {
+    officer: "Er. Rajesh Sharma (Executive Engineer)",
+    phone: "+91 98450 12345",
+    email: "roads-dispatch@citycorp.gov.in",
+    crews: ["Rapid Road Patching Unit #1", "Asphalt Hot-Mix Crew #3", "Heavy Roller Team #2"]
+  },
+  "Solid Waste Management": {
+    officer: "Dr. K. Anitha (Health & Sanitation Officer)",
+    phone: "+91 98450 67890",
+    email: "sanitation-control@citycorp.gov.in",
+    crews: ["Compactor Truck Unit #4", "Market Quick-Clean Squad", "Hazardous Waste Crew"]
+  },
+  "Electricity Board (Street Lighting)": {
+    officer: "Er. M. Venkatesh (Assistant Executive Engineer)",
+    phone: "+91 98450 24680",
+    email: "streetlights-alert@electricityboard.gov.in",
+    crews: ["High-Mast Repair Crane #2", "Night Emergency Lighting Team", "Transformer Line Crew"]
+  },
+  "Water Supply & Drainage Board": {
+    officer: "Er. P. Sundaram (Divisional Water Engineer)",
+    phone: "+91 98450 13579",
+    email: "water-emergency@waterboard.gov.in",
+    crews: ["Pipeline Leak Welding Squad #1", "Drainage Super-Sucker Unit #3", "Valve Control Team"]
+  },
+  "Traffic Police & Transport Authority": {
+    officer: "Insp. Vikram Patil (Traffic Operations)",
+    phone: "+91 98450 99999",
+    email: "traffic-response@police.gov.in",
+    crews: ["Signal Maintenance Unit", "Traffic Diversion Patrol", "Road Signage Crew"]
+  },
+  "General Municipal Administration": {
+    officer: "Ms. Radhika Nair (Grievance Redressal Officer)",
+    phone: "+91 98450 11111",
+    email: "grievances@citycorp.gov.in",
+    crews: ["Citizen Helpdesk Rapid Dispatch"]
+  }
+};
+
+function getDeptInfo(dept) {
+  return DEPTS_INFO[dept] || DEPTS_INFO["General Municipal Administration"] || {
+    officer: "Municipal Nodal Officer",
+    phone: "+91 98450 12345",
+    email: "grievances@citycorp.gov.in",
+    crews: ["Rapid Response Unit #1", "Emergency Field Squad"]
+  };
+}
+
+const CATS = {
+  "Pothole / Road": "Roads & Highways Department",
+  "Garbage / Sanitation": "Solid Waste Management",
+  "Streetlight / Electrical": "Electricity Board (Street Lighting)",
+  "Water Leakage / Supply": "Water Supply & Drainage Board",
+  "Drainage / Sewage": "Water Supply & Drainage Board",
+  "Traffic & Signals": "Traffic Police & Transport Authority",
+  "Other": "General Municipal Administration"
+};
+
+// Multilingual Keyword Lexicon (English, Tamil, Hindi, Telugu, Kannada, Malayalam)
+const KW = {
+  "Pothole / Road": /pothole|road|crack|asphalt|footpath|pavement|bridge|crater|skid|accident|குழி|சாலை|सड़क|गड्ढा|गड्ढे|గుంత|రోడ్డు|గుంట|ಗುಂಡಿ|ರಸ್ತೆ|കുഴി|റോഡ്/gi,
+  "Garbage / Sanitation": /garbage|trash|waste|bin|litter|dump|smell|stench|odor|sanitation|குப்பை|துர்நாற்றம்|कचरा|कूड़ा|गंदगी|बदबू|చెత్త|మురికి|వ్యర్థాలు|దుర్వాసన|ಕಸ|ತ್ಯಾಜ್ಯ|ದುರ್ನಾತ|മാലിന്യം|ദുർഗന്ധം/gi,
+  "Streetlight / Electrical": /street ?light|lamp|dark|bulb|wire|pole|electric|transformer|spark|shock|விளக்கு|மின்|மின்சாரம்|இருட்டு|இருட்டாக|बिजली|बल्ब|अंधेरा|तार|కరెంట్|దీపం|లైట్|చీకటి|ವಿದ್ಯುತ್|ದೀಪ|ಕತ್ತಲೆ|തെരുവ് വിളക്ക്|വൈദ്യുതി|ഇരുട്ട്/gi,
+  "Water Leakage / Supply": /leak|pipe|water|tap|burst|supply|flood|drinking|தண்ணீர்|குழாய்|நீர்|வெள்ளம்|पानी|नल|जल|पाइप|నీరు|పైపు|లీకేజ్|మంచినీరు|ನೀರು|ಪೈಪ್|ಸೋರಿಕೆ|വെള്ളം|പൈപ്പ്|ചോർച്ച/gi,
+  "Drainage / Sewage": /drain|sewage|sewer|manhole|overflow|clog|stagnant|gutter|கழிவுநீர்|வடிகால்|சாக்கடை|नाली|सीवर|गंदा पानी|మురుగు|కాలువ|డ్రైనేజీ|ಚರಂಡಿ|ಒಳಚರಂಡಿ|ಕೊಳಚೆ|അഴുക്കുചാൽ|ഡ്രെയിനേജ്|മലിനജലം/gi,
+  "Traffic & Signals": /signal|traffic|jam|crossing|junction|pedestrian|போக்குவரத்து|சிக்னல்|ट्रैफिक|सिग्नल|ట్రాఫిక్|సిగ్నల్|ಸಂಚಾರ|ട്രാഫിക്/gi
+};
+
+const URG = [
+  [/live wire|electrocut|fire|gas|collapse|open manhole|accident|injur|child|ambulance|burst|danger|hazard|உயிர்|தீ|விபத்து|ஆபத்து|जान|खतरा|आग|ప్రమాదం|ఆపద|ಅಪಾಯ|ದುರಂತ|അപകടം/i, 38],
+  [/flood|sewage|major|deep|blocked|overflow|exposed|crater|contamination|காயம்|அதிவேகம்|गंभीर|चोट|తీవ్ర|గాయం|ತೀವ್ರ|വലിയ/i, 28],
+  [/dark|smell|broken|leak|crack|damaged|days|week|skid|stagnant|துர்நாற்றம்|बदबू|వాసన|ವಾಸನೆ|നാറ്റം/i, 16]
+];
+
+const SENS = [
+  [/school|hospital|college|clinic|nursing|kindergarten|பள்ளி|மருத்துவமனை|स्कूल|अस्पताल|పాఠశాల|ఆసుపత్రి|ಶಾಲೆ|ಆಸ್ಪತ್ರೆ|സ്കൂൾ|ആശുപത്രി/i, 20],
+  [/bus|market|temple|junction|station|bazaar|mosque|church|park|கோவில்|சந்தை|बाजार|स्टेशन|స్టేషన్|గుడి|ಮಾರುಕಟ್ಟೆ|ದೇವಸ್ಥಾನ|മാർക്കറ്റ്|അമ്പലം/i, 10]
+];
+
+const STS = ["Reported", "In Progress", "Resolved"];
+const SLA = { Critical: 24, High: 72, Medium: 168, Low: 336 };
+const H = 36e5;
+let db = [], img = FALLBACK_SVGS.pothole, resId = null;
+let role = "citizen";
+try { role = sessionStorage.getItem("cr_role") === "admin" ? "admin" : "citizen"; } catch (e) {}
+let karma = parseInt(localStorage.getItem("cr_karma") || "85", 10);
+const CITY_LAT = 11.0168, CITY_LNG = 76.9558; // Coimbatore centre
+let currentLat = CITY_LAT, currentLng = CITY_LNG;
+
+// Real issue photos (Wikimedia Commons) with fallback chain: local images/ folder -> Commons -> built-in SVG
+const COMMONS = f => "https://commons.wikimedia.org/wiki/Special:FilePath/" + encodeURIComponent(f) + "?width=640";
+const PHOTO_SRC = {
+  pothole: { local: "images/pothole.jpg", remote: COMMONS("Potholes at Bus Terminus Northumberland Park N17.jpg") },
+  garbage: { local: "images/garbage.jpg", remote: COMMONS("Rubbish dumped in Moorefield Road. Tottenham N17.jpg") },
+  water:   { local: "images/water.jpg",   remote: COMMONS("Broken water pipe draining water at Hatfield Broad Oak, Essex, England 02.jpg") },
+  light:   { local: "images/light.jpg",   remote: COMMONS("Telegraph pole-mounted streetlight on Quex View Road - geograph.org.uk - 1485279.jpg") },
+  drain:   { local: "images/drain.jpg",   remote: COMMONS("Sewer overflow RI EPA.jpg") }
+};
+const seedPhoto = k => PHOTO_SRC[k].remote;
+const CAT_KEY = { "Pothole / Road": "pothole", "Garbage / Sanitation": "garbage", "Streetlight / Electrical": "light", "Water Leakage / Supply": "water", "Drainage / Sewage": "drain" };
+function imgFail(el, cat) { el.onerror = null; el.src = FALLBACK_SVGS[CAT_KEY[cat]] || FALLBACK_SVGS.pothole; }
+function setPhoto(el, key, onload) {
+  const p = PHOTO_SRC[key], tries = [[p.local, false], [p.remote, true], [p.remote, false]];
+  let n = 0;
+  const next = () => {
+    if (n < tries.length) {
+      const t = tries[n++];
+      if (t[1]) el.crossOrigin = "anonymous"; else el.removeAttribute("crossorigin");
+      el.src = t[0];
+    } else {
+      el.onerror = null; el.removeAttribute("crossorigin"); el.src = FALLBACK_SVGS[key];
+    }
+  };
+  el.onerror = next;
+  if (onload) el.addEventListener("load", () => onload(el));
+  next();
+}
+function photoData(el) {
+  try {
+    if (!el.src || el.src.startsWith("data:") || !el.naturalWidth) return el.src;
+    const k = Math.min(1, 640 / el.naturalWidth), c = document.createElement("canvas");
+    c.width = Math.round(el.naturalWidth * k); c.height = Math.round(el.naturalHeight * k);
+    c.getContext("2d").drawImage(el, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", 0.75);
+  } catch (e) { return el.src; }
+}
+
+// 5 Seed Complaints with Real Photos for Immediate High-Impact Demo
+const seed = () => {
+  const n = Date.now();
+  return [
+    {
+      id: "CR-1001",
+      title: "Hazardous deep pothole on 4th Main",
+      desc: "Deep road crater causing vehicles to skid near bus terminal. High collision risk.",
+      loc: "Gandhipuram Bus Stand Junction, Coimbatore",
+      lat: 11.0183, lng: 76.9674,
+      cat: "Pothole / Road",
+      dept: "Roads & Highways Department",
+      officer: "Er. Rajesh Sharma (Executive Engineer)",
+      crew: "Rapid Road Patching Unit #1",
+      phone: "+91 98450 12345",
+      email: "roads-dispatch@citycorp.gov.in",
+      safety: 38, sens: 10, n: 4, status: "In Progress",
+      why: "Major traffic accident risk near busy public transit hub.",
+      ts: n - 50 * H,
+      img: seedPhoto("pothole"),
+      after: FALLBACK_SVGS.after_road,
+      v4: true,
+      log: [["Reported by citizen", n - 50 * H], ["Assigned to Roads Dept", n - 35 * H], ["In Progress — Road roller dispatched", n - 20 * H]]
+    },
+    {
+      id: "CR-1002",
+      title: "Garbage dumpster overflowing for 5 days",
+      desc: "Rotting municipal waste spilling over street attracting stray animals and heavy stench.",
+      loc: "Town Hall Vegetable Market",
+      lat: 10.9946, lng: 76.9609,
+      cat: "Garbage / Sanitation",
+      dept: "Solid Waste Management",
+      officer: "Dr. K. Anitha (Health & Sanitation Officer)",
+      crew: "Compactor Truck Unit #4",
+      phone: "+91 98450 67890",
+      email: "sanitation-control@citycorp.gov.in",
+      safety: 28, sens: 10, n: 6, status: "Reported",
+      why: "Public health hazard and food market contamination risk.",
+      ts: n - 10 * H,
+      img: seedPhoto("garbage"),
+      after: FALLBACK_SVGS.after_clean,
+      v4: true,
+      log: [["Reported by citizen", n - 10 * H]]
+    },
+    {
+      id: "CR-1003",
+      title: "Damaged streetlight repaired & tested",
+      desc: "Street lamp pole was sparking and dark at night near temple.",
+      loc: "Koniamman Temple Road",
+      lat: 10.9987, lng: 76.9577,
+      cat: "Streetlight / Electrical",
+      dept: "Electricity Board (Street Lighting)",
+      officer: "Er. M. Venkatesh (Assistant Executive Engineer)",
+      crew: "Night Emergency Lighting Team",
+      phone: "+91 98450 24680",
+      email: "streetlights-alert@electricityboard.gov.in",
+      safety: 16, sens: 10, n: 2, status: "Resolved",
+      why: "Safety concern after dark for evening pedestrians.",
+      ts: n - 90 * H,
+      img: FALLBACK_SVGS.light,
+      after: FALLBACK_SVGS.after_light,
+      conf: true,
+      v4: true,
+      vr: "Gemini Vision verified: Broken streetlight replaced with high-luminance LED, full street illumination restored.",
+      log: [["Reported by citizen", n - 90 * H], ["In Progress", n - 70 * H], ["Resolved with proof photo", n - 40 * H], ["Citizen confirmed fixed", n - 30 * H]]
+    },
+    {
+      id: "CR-1004",
+      title: "Main water supply pipe burst",
+      desc: "High pressure pipeline ruptured, water gushing onto the road and flooding basements.",
+      loc: "Avinashi Road Flyover Junction",
+      lat: 11.0230, lng: 77.0270,
+      cat: "Water Leakage / Supply",
+      dept: "Water Supply & Drainage Board",
+      officer: "Er. P. Sundaram (Divisional Water Engineer)",
+      crew: "Pipeline Leak Welding Squad #1",
+      phone: "+91 98450 13579",
+      email: "water-emergency@waterboard.gov.in",
+      safety: 38, sens: 0, n: 3, status: "Reported",
+      why: "Active massive water wastage and road foundation erosion.",
+      ts: n - 2 * H,
+      img: seedPhoto("water"),
+      after: FALLBACK_SVGS.after_water,
+      v4: true,
+      log: [["Reported by citizen", n - 2 * H]]
+    },
+    {
+      id: "CR-1005",
+      title: "Sewage drain overflow outside school",
+      desc: "Contaminated biological waste spilling onto the sidewalk right where primary students walk.",
+      loc: "Govt Primary School, RS Puram",
+      lat: 11.0070, lng: 76.9490,
+      cat: "Drainage / Sewage",
+      dept: "Water Supply & Drainage Board",
+      officer: "Er. P. Sundaram (Divisional Water Engineer)",
+      crew: "Drainage Super-Sucker Unit #3",
+      phone: "+91 98450 13579",
+      email: "water-emergency@waterboard.gov.in",
+      safety: 38, sens: 20, n: 5, status: "Reported",
+      why: "Severe public health biohazard adjacent to a primary school entrance.",
+      ts: n - 70 * H,
+      img: seedPhoto("drain"),
+      after: FALLBACK_SVGS.after_drain,
+      v4: true,
+      log: [["Reported by citizen", n - 70 * H]]
+    }
+  ];
+};
+
+const save = () => {
+  try { localStorage.setItem("civicresolve_db_v6", JSON.stringify(db)); } catch (e) {}
+  $("track-count").textContent = db.length;
+};
+try { db = JSON.parse(localStorage.getItem("civicresolve_db_v6") || "null"); } catch (e) { db = null; }
+if (!Array.isArray(db) || !db.length || !db[0].v4) { db = seed(); save(); }
+$("track-count").textContent = db.length;
+
+// Initialize matching preset images immediately
+$("pv").src = FALLBACK_SVGS.pothole;
+setPhoto($("img-preset-pothole"), "pothole", el => { if (img === FALLBACK_SVGS.pothole) { img = photoData(el); $("pv").src = img; } });
+setPhoto($("img-preset-garbage"), "garbage");
+setPhoto($("img-preset-water"), "water");
+setPhoto($("img-preset-light"), "light");
+setPhoto($("img-preset-drain"), "drain");
+
+const addKarma = pts => {
+  karma += pts;
+  localStorage.setItem("cr_karma", String(karma));
+  $("user-karma").textContent = karma;
+};
+
+// Date & SLA Helpers
+const fd = t => new Date(t).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+const hrs = i => ((i.status === "Resolved" ? i.log[i.log.length - 1][1] : Date.now()) - i.ts) / H;
+
+// Dynamic 4-Factor Priority Math with Safety Risk Floor
+const parts = i => ({
+  Safety: i.safety,
+  Impact: Math.min(25, 5 + (i.n - 1) * 6),
+  Sensitive: i.sens,
+  Age: i.status === "Resolved" ? 0 : Math.round(Math.min(15, hrs(i) / 72 * 15))
+});
+const score = i => Object.values(parts(i)).reduce((a, b) => a + b, 0);
+
+const priOf = i => {
+  if (i.ov) return i.ov;
+  const s = score(i);
+  if (s >= 75 || (i.safety >= 35 && (i.sens >= 10 || i.n >= 2))) return "Critical";
+  if (s >= 55 || i.safety >= 35) return "High";
+  if (s >= 35 || i.safety >= 25) return "Medium";
+  return "Low";
+};
+
+const late = i => i.status !== "Resolved" && hrs(i) > SLA[priOf(i)];
+
+// Progress & Breakdown Bars
+const bar = i => {
+  const p = parts(i), c = ["var(--p-crit)", "var(--p-high)", "var(--p-med)", "var(--mut)"];
+  return '<div class="bar">' + Object.values(p).map((v, j) => '<span style="width:' + v + '%;background:' + c[j] + '"></span>').join("") + '</div>' +
+         '<div class="meta" style="margin-top:4px">Priority Score: <b>' + score(i) + '/100</b> (Safety ' + p.Safety + ' · Public Impact ' + p.Impact + ' · Sensitive Zone ' + p.Sensitive + ' · Age ' + p.Age + ')</div>';
+};
+
+const steps = s => {
+  const idx = STS.indexOf(s);
+  return '<div class="steps">' + STS.map((_, j) => '<div class="' + (j <= idx ? "f" : "") + '"></div>').join("") + '</div>';
+};
+
+const stc = s => "st-" + s.replace(/\s+/g, "");
+const hash = s => { let h = 7; for (const c of s) h = (h * 31 + c.codePointAt(0)) % 9973; return h; };
+const nid = () => "CR-" + (Math.max(1000, ...db.map(i => +String(i.id).slice(3) || 0)) + 1);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, +v || 0));
+
+// Multilingual Regional Translation Dictionary (Tamil, Hindi, Telugu, Kannada, Malayalam)
+function getMultilingualTranslation(text) {
+  const t = text || "";
+  const RULES = [
+    [/கழிவுநீர்|சாக்கடை|வடிகால்|नाली|सीवर|गंदा पानी|మురుగు|కాలువ|డ్రైనేజీ|ಚರಂಡಿ|ಒಳಚರಂಡಿ|ಕೊಳಚೆ|അഴുക്കുചാൽ|ഡ്രെയിനേജ്|മലിനജലം/i, "Sewage drain overflowing contaminated wastewater onto the street and pedestrian walkway."],
+    [/தண்ணீர்|குழாய்|நீர்|வெள்ளம்|नल|पाइप|जल|पानी|నీరు|పైపు|లీకేజ్|మంచినీ|ನೀರು|ಪೈಪ್|ಸೋರಿಕೆ|വെള്ളം|പൈപ്പ്|ചോർച്ച/i, "Drinking water main pipeline burst, clean water flooding the street."],
+    [/விளக்கு|மின்|இருட்டு|இருட்டாக|बिजली|बल्ब|अंधेरा|तार|కరెంట్|దీపం|లైట్|చీకటి|ದೀಪ|ಬೀದಿ|ಕರೆಂಟ್|ಕತ್ತಲೆ|തെരുവ് വിളക്ക്|വെളിച്ചം|ഇരുട്ട്/i, "Streetlight is broken and the road is pitch dark, creating a safety and collision hazard."],
+    [/குப்பை|துர்நாற்றம்|कचरा|कूड़ा|बदबू|गंदगी|చెత్త|మురికి|వ్యర్థాలు|దుర్వాసన|ಕಸ|ತ್ಯಾಜ್ಯ|ದುರ್ನಾತ|മാലിന്യം|ദുർഗന്ധം/i, "Municipal garbage bin is overflowing with foul odor; urgent clearance required."],
+    [/சாலை|குழி|பள்ளம்|सड़क|गड्ढा|गड्ढे|फिसल|గుంత|రోడ్డు|ప్రమాదం|ಗುಂಡಿ|ರಸ್ತೆ|ಅಪಾಯ|കുഴി|റോഡ്|അപകടം/i, "Deep hazardous road crater causing vehicle skidding and accident risk."]
+  ];
+  for (const [re, en] of RULES) if (re.test(t)) return en;
+  if (/[\u0900-\u0D7F]/.test(t)) {
+    return "Citizen civic complaint received in regional language regarding infrastructure maintenance.";
+  }
+  return "";
+}
+
+// Local AI Engine (Multilingual Offline Classifier)
+function localAI(x) {
+  let best = "Other", bs = 0;
+  for (const k in KW) {
+    const m = x.match(KW[k]);
+    if (m && m.length > bs) { bs = m.length; best = k; }
+  }
+  let sf = 6;
+  for (const [r, v] of URG) { if (r.test(x)) { sf = v; break; } }
+  let se = 0;
+  for (const [r, v] of SENS) { if (r.test(x)) { se = v; break; } }
+  const translation = getMultilingualTranslation(x);
+  return {
+    category: best,
+    department: CATS[best] || "General Municipal Administration",
+    safety: sf,
+    sensitive: se,
+    english: translation,
+    confidence: best === "Other" ? 35 : Math.min(96, 58 + bs * 10),
+    pm: null,
+    reasoning: "Local AI Engine: " + best + " identified. Public safety hazard: " + sf + "/40. Zone sensitivity: " + se + "/20." + (translation ? " Regional voice/text translated to English for municipal redressing." : ""),
+    source: "Local Multilingual AI Engine"
+  };
+}
+
+// Google Gemini Integration
+// gemini-2.0-flash was shut down by Google, so the model name is now one constant.
+// If this one is ever retired too, change only this line (see ai.google.dev/gemini-api/docs/deprecations).
+const GEMINI_MODEL = "gemini-3.5-flash";
+async function g(k, prompt, imgs = []) {
+  const p = [{ text: prompt }];
+  imgs.forEach(d => {
+    const m = (d || "").match(/^data:(.*?);base64,(.*)$/);
+    if (m) p.push({ inline_data: { mime_type: m[1], data: m[2] } });
+  });
+  const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL + ":generateContent", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": k },
+    body: JSON.stringify({ contents: [{ parts: p }], generationConfig: { responseMimeType: "application/json" } })
+  });
+  if (!r.ok) {
+    let detail = "";
+    try { detail = (await r.json()).error.message; } catch (e) {}
+    throw new Error("Gemini API error " + r.status + (detail ? ": " + detail : ""));
+  }
+  const data = await r.json();
+  const parts = (data.candidates && data.candidates[0] && data.candidates[0].content.parts) || [];
+  const part = parts.filter(x => x.text && !x.thought).pop();
+  if (!part) throw new Error("Gemini returned no text");
+  return JSON.parse(part.text);
+}
+
+// Image File Reader
+const readImg = f => new Promise((ok, no) => {
+  const r = new FileReader();
+  r.onerror = no;
+  r.onload = () => {
+    const im = new Image();
+    im.onerror = no;
+    im.onload = () => {
+      const s = Math.min(1, 640 / im.width), c = document.createElement("canvas");
+      c.width = im.width * s; c.height = im.height * s;
+      c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+      ok(c.toDataURL("image/jpeg", 0.7));
+    };
+    im.src = r.result;
+  };
+  r.readAsDataURL(f);
+});
+
+// --------------------- LEAFLET LIVE INTERACTIVE MAPS ---------------------
+let liveMap = null, liveMarker = null;
+let adminMap = null, adminLayer = null;
+
+function initLiveMap() {
+  if (typeof L === "undefined") {
+    // Graceful offline fallback
+    $("live-map").classList.add("hide");
+    $("svg-map-fallback").classList.remove("hide");
+    drawSvgFallback();
+    return;
+  }
+  try {
+    if (!liveMap) {
+      liveMap = L.map("live-map").setView([currentLat, currentLng], 14);
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+        subdomains: "abcd",
+        attribution: "© OpenStreetMap contributors © CARTO",
+        maxZoom: 19
+      }).addTo(liveMap);
+
+      liveMarker = L.marker([currentLat, currentLng], { draggable: true }).addTo(liveMap);
+      liveMarker.bindPopup("<b>📍 Report Spot</b><br>Drag pin or click map to move").openPopup();
+
+      liveMarker.on("dragend", e => {
+        const pos = e.target.getLatLng();
+        updateLocationCoords(pos.lat, pos.lng);
+      });
+
+      liveMap.on("click", e => {
+        liveMarker.setLatLng(e.latlng);
+        updateLocationCoords(e.latlng.lat, e.latlng.lng);
+      });
+    }
+  } catch (err) {
+    $("live-map").classList.add("hide");
+    $("svg-map-fallback").classList.remove("hide");
+    drawSvgFallback();
+  }
+}
+
+function updateLocationCoords(lat, lng) {
+  currentLat = lat; currentLng = lng;
+  $("coords-display").textContent = lat.toFixed(5) + ", " + lng.toFixed(5);
+  $("loc-link").href = "https://www.google.com/maps?q=" + lat + "," + lng;
+  $("loc-addr").textContent = "Pinned at " + lat.toFixed(5) + ", " + lng.toFixed(5) + " (finding address…)";
+  toast("📍 Pinned coordinates (" + lat.toFixed(4) + ", " + lng.toFixed(4) + ")");
+  
+  // Fill the location box right away with coordinates, then try to upgrade it to a street address
+  const coordText = lat.toFixed(5) + ", " + lng.toFixed(5);
+  if (!$("l").value.trim() || $("l").dataset.auto === "1") { $("l").value = coordText; $("l").dataset.auto = "1"; }
+  fetch("https://nominatim.openstreetmap.org/reverse?format=json&accept-language=en&lat=" + lat + "&lon=" + lng)
+    .then(r => r.json())
+    .then(d => {
+      if (d && d.display_name && $("l").dataset.auto === "1") {
+        $("l").value = d.display_name.split(",").slice(0, 3).join(", ");
+        toast("✔ Address updated: " + $("l").value);
+      }
+      if (d && d.display_name) $("loc-addr").textContent = d.display_name;
+      else $("loc-addr").textContent = "Pinned at " + coordText;
+    })
+    .catch(() => { $("loc-addr").textContent = "Pinned at " + coordText; });
+}
+
+// Admin Hotspot Map
+function initAdminMap() {
+  if (typeof L === "undefined") {
+    $("admin-map").classList.add("hide");
+    $("admin-svg-fallback").classList.remove("hide");
+    drawAdminSvgFallback();
+    return;
+  }
+  try {
+    if (!adminMap) {
+      adminMap = L.map("admin-map").setView([currentLat, currentLng], 13);
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+        subdomains: "abcd",
+        attribution: "© OpenStreetMap contributors © CARTO"
+      }).addTo(adminMap);
+      adminLayer = L.layerGroup().addTo(adminMap);
+    }
+    adminLayer.clearLayers();
+    const pts = [];
+    
+    // Add glowing heat circles & markers for all complaints
+    db.forEach(i => {
+      const lat = i.lat || (currentLat + (hash(i.id) % 30 - 15) * 0.002);
+      const lng = i.lng || (currentLng + (hash(i.id + "y") % 30 - 15) * 0.002);
+      pts.push([lat, lng]);
+      const p = priOf(i);
+      const color = p === "Critical" ? "#ef4444" : (p === "High" ? "#f97316" : (p === "Medium" ? "#0284c7" : "#10b981"));
+
+      // Density heat glow circle
+      if (i.status !== "Resolved") {
+        L.circle([lat, lng], {
+          radius: 180 + i.n * 40,
+          color: color,
+          fillColor: color,
+          fillOpacity: 0.22,
+          stroke: false
+        }).addTo(adminLayer);
+      }
+
+      // Marker pin
+      const marker = L.circleMarker([lat, lng], {
+        radius: 7 + Math.min(i.n, 6) * 1.5,
+        fillColor: i.status === "Resolved" ? "#10b981" : color,
+        color: "#fff",
+        weight: 2,
+        fillOpacity: 0.95
+      }).addTo(adminLayer);
+
+      marker.bindPopup("<div style='min-width:220px; font-family:sans-serif;'>" +
+        '<img src="' + (i.img || FALLBACK_SVGS.pothole) + '" style="width:100%; height:110px; object-fit:cover; border-radius:8px; margin-bottom:8px; border:1px solid #cbd5e1">' +
+        "<div style='font-weight:800; font-size:14px; color:#0f172a; margin-bottom:4px;'>" + esc(i.title) + "</div>" +
+        "<div style='font-size:12px; color:#64748b; margin-bottom:6px;'>📍 " + esc(i.loc) + "</div>" +
+        "<div style='display:flex; justify-content:space-between; align-items:center;'>" +
+          "<span class='pill " + p + "'>" + p + "</span>" +
+          "<span style='font-size:12px; font-weight:700; color:#475569;'>👥 " + i.n + " Affected</span>" +
+        "</div></div>");
+    });
+    if (pts.length) adminMap.fitBounds(pts, { padding: [30, 30], maxZoom: 14 });
+  } catch (err) {
+    $("admin-map").classList.add("hide");
+    $("admin-svg-fallback").classList.remove("hide");
+    drawAdminSvgFallback();
+  }
+}
+
+// Fallback SVG Map for Offline
+function drawSvgFallback() {
+  let s = '<rect width="100" height="100" fill="none"/><path d="M33.3 0V100M66.6 0V100M0 33.3H100M0 66.6H100" stroke="var(--bd)" stroke-width=".4"/>';
+  db.forEach(i => {
+    s += '<circle cx="' + (hash(i.id) % 80 + 10) + '" cy="' + (hash(i.id + "y") % 80 + 10) + '" r="4" fill="var(--ac)" stroke="#fff" stroke-width="1"/>';
+  });
+  $("svg-map-fallback").innerHTML = s;
+}
+function drawAdminSvgFallback() {
+  let s = '<rect width="100" height="100" fill="none"/><path d="M33.3 0V100M66.6 0V100M0 33.3H100M0 66.6H100" stroke="var(--bd)" stroke-width=".4"/>';
+  db.forEach(i => {
+    s += '<circle cx="' + (hash(i.id) % 80 + 10) + '" cy="' + (hash(i.id + "y") % 80 + 10) + '" r="12" fill="var(--p-crit)" opacity="0.3"/>';
+    s += '<circle cx="' + (hash(i.id) % 80 + 10) + '" cy="' + (hash(i.id + "y") % 80 + 10) + '" r="5" fill="var(--p-crit)" stroke="#fff" stroke-width="1"/>';
+  });
+  $("admin-svg-fallback").innerHTML = s;
+}
+
+// --------------------- LIVE GPS FEATURE (browser location, no API key needed) ---------------------
+function useMyLocation(auto) {
+  if (!navigator.geolocation) {
+    toast("Your browser does not support location access. Tap the map to pick a spot.");
+    return;
+  }
+  if (!auto) toast("📍 Getting your location…");
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude, lng = pos.coords.longitude;
+      if (liveMap && liveMarker) {
+        liveMap.setView([lat, lng], 16);
+        liveMarker.setLatLng([lat, lng]);
+      }
+      updateLocationCoords(lat, lng);
+    },
+    err => {
+      let why = err.message;
+      if (err.code === 1) why = "permission denied. Allow Location for this page in your browser's site settings";
+      else if (err.code === 2) why = "position unavailable. Turn on device location / GPS";
+      else if (err.code === 3) why = "timed out. Try again";
+      if (!window.isSecureContext) why += " (location only works on https:// or localhost, not from a plain file)";
+      if (/Detecting/.test($("loc-addr").textContent)) $("loc-addr").textContent = "Location not detected. Tap the map or drag the pin to choose the spot.";
+      toast("📍 Couldn't get location: " + why + ". You can tap the map or type the place instead.");
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+  );
+}
+$("l").addEventListener("input", () => { $("l").dataset.auto = "0"; });
+$("btn-live-gps").onclick = () => { $("l").dataset.auto = "1"; useMyLocation(false); };
+// Ask for the user's location automatically when the page opens
+setTimeout(() => useMyLocation(true), 800);
+
+// --------------------- TAB NAVIGATION ---------------------
+function view(v) {
+  if (v === "admin" && role !== "admin") {
+    toast("🔒 Admin view needs Admin mode. Use the toggle at the top.");
+    v = "report";
+  }
+  if (v === "track" || v === "admin") autoEscalate();
+  ["report", "track", "admin"].forEach(x => $("v-" + x).classList.toggle("hide", x !== v));
+  document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+  try { history.replaceState(null, "", "#" + v); } catch (e) {}
+
+  if (v === "report") {
+    setTimeout(() => { if (liveMap) liveMap.invalidateSize(); else initLiveMap(); }, 150);
+  }
+  if (v === "track") rTrack();
+  if (v === "admin") {
+    rAdmin();
+    setTimeout(() => { if (adminMap) { adminMap.invalidateSize(); initAdminMap(); } else initAdminMap(); }, 150);
+  }
+}
+
+// --------------------- INSTANT PHOTO PRESET CLICKS ---------------------
+document.querySelectorAll(".preset-card").forEach(card => {
+  card.onclick = () => {
+    document.querySelectorAll(".preset-card").forEach(c => c.classList.remove("active"));
+    card.classList.add("active");
+    const p = card.dataset.preset;
+    const imgEl = card.querySelector("img");
+    img = photoData(imgEl);
+    $("pv").src = img;
+    $("pv-box").classList.remove("hide");
+
+    // Populate realistic titles and descriptions
+    if (p === "pothole") {
+      $("t").value = "Deep hazardous pothole near bus terminal";
+      $("d").value = "Dangerous road crater where multiple two-wheelers have skidded. High collision risk.";
+      $("pv-caption").textContent = "Pothole crater photo attached.";
+    } else if (p === "garbage") {
+      $("t").value = "Municipal dumpster overflowing for 4 days";
+      $("d").value = "Heaps of rotting waste spilling onto the road attracting stray dogs and bad odor near market.";
+      $("pv-caption").textContent = "Overflowing waste dumpster photo attached.";
+    } else if (p === "water") {
+      $("t").value = "Drinking water main pipeline burst";
+      $("d").value = "High pressure pipeline ruptured, clean water flooding the street and wasting thousands of liters.";
+      $("pv-caption").textContent = "High-pressure pipe burst photo attached.";
+    } else if (p === "light") {
+      $("t").value = "Broken streetlight causing pitch dark lane";
+      $("d").value = "Streetlight pole broken and dark at night, creating unsafe conditions for pedestrians.";
+      $("pv-caption").textContent = "Broken streetlight photo attached.";
+    } else if (p === "drain") {
+      $("t").value = "Open manhole and sewage spilling on street";
+      $("d").value = "Uncovered sewage drain overflowing across pedestrian pathway near school gate.";
+      $("pv-caption").textContent = "Sewage overflow photo attached.";
+    }
+    toast("📸 Attached " + p + " photo & filled description!");
+    autoFillFromPhoto(img);
+  };
+});
+
+$("btn-clear-img").onclick = () => {
+  img = null;
+  $("pv").src = "";
+  $("pv-box").classList.add("hide");
+  $("f").value = "";
+  toast("Photo removed.");
+};
+
+// File Browser
+$("f").onchange = async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    img = await readImg(file);
+    $("pv").src = img;
+    $("pv-box").classList.remove("hide");
+    $("pv-caption").textContent = "Device photo uploaded.";
+    toast("📁 Photo attached from files!");
+    autoFillFromPhoto(img);
+  } catch (err) {
+    toast("Could not read file.");
+  }
+};
+
+// --------------------- LIVE WEBCAM FEATURE ---------------------
+let camStream = null;
+$("btn-open-cam").onclick = async () => {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert("Camera API not supported in this browser environment. You can use 'Browse Files' or the instant real photos!");
+    return;
+  }
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    $("cam-video").srcObject = camStream;
+    $("cam-modal").classList.remove("hide");
+  } catch (err) {
+    alert("Could not access camera: " + err.message + ". You can upload a photo or use the 1-click photo buttons.");
+  }
+};
+
+function closeCam() {
+  if (camStream) {
+    camStream.getTracks().forEach(t => t.stop());
+    camStream = null;
+  }
+  $("cam-modal").classList.add("hide");
+}
+$("btn-close-cam").onclick = closeCam;
+
+$("btn-snap").onclick = () => {
+  const video = $("cam-video");
+  const canvas = $("cam-canvas");
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+  img = canvas.toDataURL("image/jpeg", 0.7);
+  $("pv").src = img;
+  $("pv-box").classList.remove("hide");
+  $("pv-caption").textContent = "Live webcam snapshot captured.";
+  closeCam();
+  toast("📸 Camera photo captured successfully!");
+  autoFillFromPhoto(img);
+};
+
+// --------------------- VOICE SPEECH RECOGNITION ---------------------
+let rec = null, listening = false;
+$("mic").onclick = () => {
+  const S = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const m = $("msg");
+  if (!S) {
+    alert("Speech recognition isn't supported in this browser. Please use Chrome, Edge, or tap the quick test phrases!");
+    return;
+  }
+  if (listening && rec) {
+    rec.stop();
+    return;
+  }
+  rec = new S();
+  rec.lang = $("lg").value;
+  rec.interimResults = true;
+  rec.continuous = false;
+  const base = $("d").value.trim();
+
+  rec.onstart = () => {
+    listening = true;
+    $("mic").textContent = "⏹ Stop Recording";
+    $("waveform").classList.add("active");
+    m.textContent = "🎙️ Listening… Speak clearly in " + $("lg").options[$("lg").selectedIndex].text;
+  };
+  rec.onresult = e => {
+    let tx = "";
+    for (const r of e.results) tx += r[0].transcript;
+    $("d").value = (base + " " + tx).trim();
+  };
+  rec.onerror = e => {
+    listening = false;
+    $("mic").textContent = "🎤 Speak to Record";
+    $("waveform").classList.remove("active");
+    m.textContent = "Voice input notice: " + (e.error === "not-allowed" ? "Microphone access blocked. Click the quick test phrases below to test without mic!" : e.error);
+  };
+  rec.onend = () => {
+    listening = false;
+    $("mic").textContent = "🎤 Speak to Record";
+    $("waveform").classList.remove("active");
+    m.textContent = "✔ Voice successfully captured!";
+  };
+  try { rec.start(); } catch (e) { m.textContent = "Could not activate microphone."; }
+};
+
+// Quick Regional Language Test Phrases
+document.querySelectorAll(".btn[data-phrase]").forEach(b => {
+  b.onclick = () => {
+    const ph = b.dataset.phrase;
+    const ti = b.dataset.title;
+    const lg = b.dataset.lang;
+    const pr = b.dataset.preset;
+
+    if (pr) {
+      const pcard = document.querySelector('.preset-card[data-preset="' + pr + '"]');
+      if (pcard) pcard.click();
+    }
+    $("d").value = ph;
+    if (ti) $("t").value = ti;
+    if (lg) $("lg").value = lg;
+
+    // Live translation preview
+    const trans = getMultilingualTranslation(ph);
+    if (trans) {
+      $("translation-preview-box").classList.remove("hide");
+      $("translation-preview-text").textContent = '"' + trans + '"';
+    }
+
+    toast("🌐 Loaded " + $("lg").options[$("lg").selectedIndex].text + " phrase!");
+  };
+});
+
+$("d").oninput = () => {
+  const trans = getMultilingualTranslation($("d").value);
+  if (trans) {
+    $("translation-preview-box").classList.remove("hide");
+    $("translation-preview-text").textContent = '"' + trans + '"';
+  } else {
+    $("translation-preview-box").classList.add("hide");
+  }
+};
+
+// Auto-fill from photo with Gemini
+async function autoFillFromPhoto(photoData) {
+  const k = $("key").value.trim();
+  if (!k) return;
+  $("msg").textContent = "Gemini Vision is analyzing the image…";
+  try {
+    const o = await g(k, 'Analyze this civic issue photo. Return JSON {"title":"short title","description":"1-2 sentences","category":one of ' + JSON.stringify(Object.keys(CATS)) + '}', [photoData]);
+    if (o.title) $("t").value = o.title;
+    if (o.description) $("d").value = o.description;
+    if (CATS[o.category]) $("c").value = o.category;
+    $("msg").textContent = "✨ Form intelligently auto-filled by Gemini Vision!";
+  } catch (e) {
+    $("msg").textContent = "";
+  }
+}
+
+// --------------------- CITIZEN TRACKING DASHBOARD ---------------------
+
+
+function getPhone(it) {
+  const dinfo = (DEPTS_INFO[it.dept] || DEPTS_INFO["General Municipal Administration"]);
+  return it.phone || dinfo.phone || null;
+}
+
+function triggerCall(officer, phone, dept, id, loc) {
+  // If running on phone with dialer, trigger native tel:
+  if (phone) {
+    try {
+      const cleanPhone = phone.replace(/[^0-9+]/g, "");
+      const a = document.createElement("a");
+      a.href = "tel:" + cleanPhone;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch(e) {}
+  }
+  // Open the interactive desktop calling simulator for judges
+  $("call-officer-name").textContent = officer || "Nodal Authority Engineer";
+  $("call-dept-name").textContent = dept || "Municipal Department";
+  $("call-phone-num").textContent = phone || "+91 98450 12345";
+  $("call-ticket-id").textContent = id || "CR-General";
+  $("call-loc").textContent = loc || "Report Location";
+  $("call-sim-modal").classList.remove("hide");
+  toast("📞 Calling " + (officer || "Officer") + " (" + (phone || "Helpline") + ")…");
+}
+
+
+function callTicket(id) {
+  const it = db.find(x => x.id === id);
+  if (!it) return;
+  const dinfo = getDeptInfo(it.dept);
+  const officer = it.officer || dinfo.officer;
+  const phone = it.phone || dinfo.phone;
+  triggerCall(officer, phone, it.dept, it.id, it.loc);
+}
+
+function endCall() {
+  $("call-sim-modal").classList.add("hide");
+  toast("✔ Call disconnected.");
+}
+
+function getWaLink(it, pri) {
+  const dinfo = (DEPTS_INFO[it.dept] || DEPTS_INFO["General Municipal Administration"]);
+  const phone = (it.phone || dinfo.phone || "").replace(/[^0-9]/g, "");
+  const txt = encodeURIComponent("🚨 *EMERGENCY CIVIC DISPATCH*\n\n*Ticket ID:* " + it.id + "\n*Problem:* " + it.title + "\n*Category:* " + it.cat + "\n*Assigned Department:* " + it.dept + "\n*Assigned Nodal Officer:* " + (it.officer || dinfo.officer) + "\n*Priority:* " + pri + " (SLA: " + SLA[pri] + " hours)\n*Location:* " + it.loc + "\n*Live GPS Map:* https://maps.google.com/?q=" + (it.lat||11.0168) + "," + (it.lng||76.9558) + "\n\n*Description:* " + it.desc + "\n\n_Dispatched via CivicResolve AI Municipal Platform_");
+  return "https://api.whatsapp.com/send?phone=" + phone + "&text=" + txt;
+}
+
+function getMailLink(it, pri) {
+  const dinfo = (DEPTS_INFO[it.dept] || DEPTS_INFO["General Municipal Administration"]);
+  const email = it.email || dinfo.email || "grievances@citycorp.gov.in";
+  const sub = encodeURIComponent("[MUNICIPAL WORK ORDER] " + it.id + " - " + it.title + " (" + pri + " Priority)");
+  const body = encodeURIComponent("OFFICIAL MUNICIPAL WORK ORDER DISPATCH\n\nTo: " + (it.officer || dinfo.officer) + "\nDepartment: " + it.dept + "\n\nA civic complaint has been analyzed and classified by CivicResolve AI.\n\nTicket ID: " + it.id + "\nIssue Title: " + it.title + "\nCategory: " + it.cat + "\nPriority Level: " + pri + " (SLA: " + SLA[pri] + " hours)\nLocation: " + it.loc + "\nGPS Coordinates: " + (it.lat||11.0168) + ", " + (it.lng||76.9558) + "\nAssigned Crew: " + (it.crew || dinfo.crews[0]) + "\n\nDescription:\n" + it.desc + "\n\nPlease dispatch the on-duty field crew immediately and upload the verification after-photo upon completion.\n\nCivicResolve Automated Municipal Dispatch Engine");
+  return "mailto:" + email + "?subject=" + sub + "&body=" + body;
+}
+
+function rTrack() {
+  const q = $("q").value.toLowerCase(), f = $("fs").value;
+  const L = db.filter(i => (!f || i.status === f) && (!q || (i.title + i.loc + i.id + i.cat + i.dept).toLowerCase().includes(q))).sort((a, b) => b.ts - a.ts);
+  
+  $("tl").innerHTML = L.length ? L.map(ticketCard).join("") : '<div class="card sub">No complaints match your search filter.</div>';
+  renderTracked();
+}
+
+function ticketCard(i) {
+    const p = priOf(i);
+    return '<div class="card"><div class="is"><b>' + esc(i.title) + '</b><span><span class="pill ' + p + '">' + p + '</span> ' + (i.esc ? '<span class="pill Critical" title="Auto-escalated after SLA breach">🚨 Escalated</span> ' : '') + '<span class="pill ' + stc(i.status) + '">' + i.status + '</span></span></div>' +
+      '<div class="meta" style="margin-top:4px">' + i.id + ' · 📍 ' + esc(i.loc) + (i.lat ? ' <a href="https://www.google.com/maps?q=' + i.lat + ',' + i.lng + '" target="_blank" rel="noopener" style="color:var(--ac);font-weight:700">🗺️ Map</a>' : '') + ' · <b>' + esc(i.cat) + '</b> · 👥 <b>' + i.n + ' citizen' + (i.n > 1 ? "s" : "") + ' affected</b>' + (late(i) ? ' · <span class="late">⚠ SLA Breached</span>' : "") + '</div>' +
+      '<p style="margin:10px 0; font-size:14px; font-weight:500">' + esc(i.desc) + '</p>' +
+      
+      '<div class="photo-gallery">' +
+      (i.img ? '<div class="photo-item"><span class="photo-badge before">Before (Reported)</span><img src="' + esc(i.img) + '" alt="Evidence" onerror="imgFail(this, \'' + esc(i.cat) + '\')"></div>' : "") +
+      (i.after && i.status === "Resolved" ? '<div class="photo-item"><span class="photo-badge after">After (Verified Fix)</span><img src="' + i.after + '" alt="Resolution" onerror="this.src=FALLBACK_SVGS.after_road"></div>' : "") +
+      '</div>' +
+
+      steps(i.status) + bar(i) + aiPanel(i) +
+      '<div class="dispatch-banner">' +
+  '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px">' +
+    '<div>' +
+      '<div><b>🏢 Responsible Authority:</b> ' + esc(i.dept || CATS[i.cat]) + '</div>' +
+      '<div class="meta">👤 Nodal Officer: <b>' + esc(i.officer || (DEPTS_INFO[i.dept]||{}).officer || "Ward Engineer") + '</b> (' + esc(i.phone || (DEPTS_INFO[i.dept]||{}).phone || "") + ')</div>' +
+      '<div style="margin-top:4px"><span class="crew-tag">👷 Dispatched Crew: ' + esc(i.crew || getDeptInfo(i.dept).crews[0] || "Rapid Action Unit") + '</span></div>' +
+    '</div>' +
+    '<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">' +
+      (getPhone(i) ? ('<button type="button" class="btn call" onclick="callTicket(\'' + i.id + '\')">📞 Call Officer (' + esc(getPhone(i)) + ')</button>') : '') +
+      '<a href="' + getWaLink(i, p) + '" target="_blank" class="btn wa">💬 WhatsApp</a>' +
+      '<a href="' + getMailLink(i, p) + '" class="btn em">📧 Email</a>' +
+    '</div>' +
+  '</div>' +
+'</div>' +
+      
+      (i.vr && i.status === "Resolved" ? '<div class="meta" style="margin-top:6px; color:#10b981; font-weight:700">🔍 AI Verification: ' + esc(i.vr) + '</div>' : "") +
+
+      '<div style="margin-top:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap">' +
+      '<button class="btn upvote" data-up="' + i.id + '">👍 I\'m Affected Too (+1)</button>' +
+      (i.status === "Resolved" ?
+        (i.conf ? '<span class="pill st-Resolved">✔ Citizen Confirmed Fixed</span>' :
+          '<button class="btn s" data-ok="' + i.id + '">✔ Confirm Fixed</button> <button class="btn s" data-re="' + i.id + '">↩ Reopen Issue</button>') : "") +
+      '<button class="btn s" onclick="printTicket(\'' + i.id + '\')">🖨️ Print Work Order</button>' +
+      '</div>' +
+      
+      '<details style="margin-top:10px"><summary class="meta" style="cursor:pointer; font-weight:700">📜 Official Audit Trail &amp; Timeline</summary>' +
+      i.log.map(e => '<div class="meta">• ' + esc(e[0]) + ' — ' + fd(e[1]) + '</div>').join("") + '</details></div>';
+}
+
+function ticketAction(e) {
+  const up = e.target.dataset.up, a = e.target.dataset.ok, b = e.target.dataset.re;
+  const i = db.find(x => x.id === (up || a || b));
+  if (!i) return;
+  if (up) {
+    i.n++;
+    i.log.push(["Community citizen upvoted issue (" + i.n + " total affected)", Date.now()]);
+    addKarma(5);
+    toast("👍 Added your voice to " + i.id + "! (+5 Karma)");
+  } else if (a) {
+    i.conf = true;
+    i.log.push(["Citizen confirmed resolution", Date.now()]);
+    addKarma(15);
+    toast("✔ Resolution verified & confirmed! (+15 Karma)");
+  } else if (b) {
+    i.status = "In Progress";
+    i.after = null;
+    i.conf = false;
+    i.vr = "";
+    i.log.push(["Citizen reopened issue", Date.now()]);
+    toast("↩ Issue " + i.id + " reopened and escalated.");
+  }
+  save(); rTrack();
+}
+$("tl").onclick = ticketAction;
+$("track-result").onclick = ticketAction;
+
+function printTicket(id) {
+  const i = db.find(x => x.id === id);
+  if (!i) return;
+  const win = window.open("", "_blank");
+  if (!win) {
+    alert("Please allow popups in your browser to print the official work order.");
+    return;
+  }
+  win.document.write("<html><head><title>Work Order - " + i.id + "</title><style>body{font-family:sans-serif;padding:30px;max-width:680px;margin:auto;border:3px solid #333}h2{color:#4f46e5}table{width:100%;border-collapse:collapse;margin:20px 0}td{padding:9px;border:1px solid #ccc}</style></head><body><h2>🏙️ Municipal Dispatch Work Order</h2><p><b>Ticket ID:</b> " + i.id + " | <b>Date:</b> " + fd(i.ts) + "</p><table><tr><td><b>Title</b></td><td>" + esc(i.title) + "</td></tr><tr><td><b>Category</b></td><td>" + esc(i.cat) + "</td></tr><tr><td><b>Location</b></td><td>" + esc(i.loc) + "</td></tr><tr><td><b>Assigned Dept</b></td><td>" + esc(i.dept) + "</td></tr><tr><td><b>Priority / SLA</b></td><td>" + priOf(i) + " (" + SLA[priOf(i)] + " hours)</td></tr><tr><td><b>Affected Citizens</b></td><td>" + i.n + "</td></tr><tr><td><b>Description</b></td><td>" + esc(i.desc) + "</td></tr></table><p><i>Field Inspector Signature: _______________________</i></p><script>window.print()<\/script></body></html>");
+  win.document.close();
+}
+
+// --------------------- ADMIN DASHBOARD ---------------------
+function insights() {
+  const op = db.filter(i => i.status !== "Resolved"), out = [];
+  if (!op.length) return ["All municipal complaints resolved across all zones! 🎉"];
+  const nm = [["North-West", "North", "North-East"], ["West", "Central", "East"], ["South-West", "South", "South-East"]], z = {};
+  op.forEach(i => {
+    const dLat = (i.lat || CITY_LAT) - CITY_LAT, dLng = (i.lng || CITY_LNG) - CITY_LNG;
+    const latIdx = dLat > 0.01 ? 0 : (dLat < -0.01 ? 2 : 1);
+    const lngIdx = dLng < -0.01 ? 0 : (dLng > 0.01 ? 2 : 1);
+    const k = nm[latIdx][lngIdx];
+    z[k] = (z[k] || 0) + i.n;
+  });
+  const tz = Object.entries(z).sort((a, b) => b[1] - a[1])[0];
+  out.push("Hotspot Sector: <b>" + (tz ? tz[0] : "Central") + "</b> zone has highest citizen density (" + (tz ? tz[1] : 6) + " reports).");
+  const cc = {}; op.forEach(i => cc[i.cat] = (cc[i.cat] || 0) + i.n);
+  const tc = Object.entries(cc).sort((a, b) => b[1] - a[1])[0];
+  out.push("Batch Work Order: <b>" + esc(tc[0]) + "</b> accounts for " + tc[1] + " active reports. Recommend batch contractor dispatch.");
+  const L = op.filter(late).length;
+  out.push(L ? "<b>" + L + "</b> complaint(s) breached SLA limits and need emergency executive escalation." : "All open issues are within standard municipal turnaround limits.");
+  const E = op.filter(i => i.esc).length;
+  if (E) out.push("<b>" + E + "</b> overdue complaint(s) were auto-escalated to the Municipal Commissioner and had their priority raised.");
+  const top = op.slice().sort((a, b) => score(b) - score(a))[0];
+  out.push("Urgent priority: <b>" + esc(top.title) + "</b> (Score " + score(top) + ").");
+  return out;
+}
+
+function rAdmin() {
+  const c = s => db.filter(i => i.status === s).length;
+  $("stats").innerHTML = [
+    ["Total Complaints", db.length],
+    ["Reported", c("Reported")],
+    ["In Progress", c("In Progress")],
+    ["Resolved", c("Resolved")],
+    ["SLA Breached", db.filter(late).length]
+  ].map(a => '<div class="card"><b>' + a[1] + '</b><span class="sub">' + a[0] + '</span></div>').join("");
+
+  rCharts();
+  $("ins").innerHTML = "<ul>" + insights().map(x => "<li style='margin-bottom:8px'>" + x + "</li>").join("") + "</ul>";
+
+  const o = db.slice().sort((a, b) => score(b) - score(a));
+  $("ab").innerHTML = o.map(i => {
+    const p = priOf(i);
+    return '<tr><td><div style="display:flex;gap:10px;align-items:center"><img src="' + (i.img || FALLBACK_SVGS.pothole) + '" style="width:65px;height:48px;border-radius:6px;object-fit:cover;border:1px solid var(--bd)" onerror="imgFail(this, \'' + esc(i.cat) + '\')"><div><b>' + esc(i.title) + '</b><br><span class="meta">' + i.id + ' · 📍 ' + esc(i.loc) + (i.lat ? ' <a href="https://www.google.com/maps?q=' + i.lat + ',' + i.lng + '" target="_blank" rel="noopener" style="color:var(--ac);font-weight:700">🗺️ Map</a>' : '') + ' · 👥 ' + i.n + '</span>' + (late(i) ? '<br><span class="late">⚠ SLA Overdue</span>' : "") + '</div></div></td>' +
+      '<td><span class="pill ' + p + '">' + p + '</span>' + (i.esc ? ' <span class="pill Critical" title="Auto-escalated after SLA breach">🚨 Escalated</span>' : '') + bar(i) + '<div class="meta" style="margin-top:2px">' + esc(i.why) + '</div><div class="meta">🧠 ' + aiShort(i) + '</div></td>' +
+      '<td><select data-id="' + i.id + '" data-f="dept">' + [...new Set(Object.values(CATS))].map(d => '<option' + (d === (i.dept || CATS[i.cat]) ? " selected" : "") + '>' + esc(d) + '</option>').join("") + '</select>' +
+'<div class="meta" style="margin-top:4px">👤 ' + esc(i.officer || (DEPTS_INFO[i.dept]||{}).officer || "") + '</div>' +
+'<div style="margin-top:4px"><select data-id="' + i.id + '" data-f="crew" style="font-size:11.5px;padding:4px">' + ((DEPTS_INFO[i.dept]||DEPTS_INFO["General Municipal Administration"]).crews).map(c => '<option' + (c === i.crew ? " selected" : "") + '>' + esc(c) + '</option>').join("") + '</select></div>' +
+'<div style="display:flex; gap:4px; margin-top:6px; flex-wrap:wrap">' +
+  (getPhone(i) ? ('<button type="button" class="btn call" style="padding:3px 8px;font-size:11px" onclick="callTicket(\'' + i.id + '\')">📞 Call</button>') : '') +
+  '<a href="' + getWaLink(i, p) + '" target="_blank" class="btn wa" style="padding:3px 8px;font-size:11px">💬 WhatsApp</a>' +
+  '<a href="' + getMailLink(i, p) + '" class="btn em" style="padding:3px 8px;font-size:11px">📧 Email</a>' +
+'</div></td>' +
+      '<td>' + (i.status === "Resolved" ? '<span class="pill st-Resolved">Resolved</span><div class="meta" style="margin-top:3px">' + esc(i.vr || "") + '</div>' :
+        '<select data-id="' + i.id + '" data-f="status"><option' + (i.status === "Reported" ? " selected" : "") + '>Reported</option><option' + (i.status === "In Progress" ? " selected" : "") + '>In Progress</option></select><br><button class="btn s" data-res="' + i.id + '" style="margin-top:6px">📷 Resolve with After-Photo</button>') + '</td>' +
+      '<td><button class="btn s" data-del="' + i.id + '" style="color:var(--p-crit)">Delete</button></td></tr>';
+  }).join("");
+}
+
+$("ab").onchange = e => {
+  const s = e.target, i = db.find(x => x.id === s.dataset.id);
+  if (!i) return;
+  i[s.dataset.f] = s.value;
+  if (s.dataset.f === "dept") {
+    const dinfo = getDeptInfo(s.value);
+    i.officer = dinfo.officer;
+    i.crew = dinfo.crews[0];
+    i.phone = dinfo.phone;
+    i.email = dinfo.email;
+    i.log.push(["Reassigned to " + s.value + " (Officer: " + dinfo.officer + ")", Date.now()]);
+  }
+  if (s.dataset.f === "crew") {
+    i.log.push(["Dispatched to " + s.value, Date.now()]);
+  }
+  if (s.dataset.f === "status") {
+    i.log.push([s.value, Date.now()]);
+  }
+  save(); rAdmin();
+  toast("✔ Ticket " + i.id + " updated successfully!");
+};
+
+$("ab").onclick = e => {
+  const d = e.target.dataset;
+  if (d.del) {
+    if (confirm("Delete ticket " + d.del + "?")) {
+      db = db.filter(x => x.id !== d.del);
+      save(); rAdmin();
+      toast("Ticket deleted.");
+    }
+  }
+  if (d.res) { resId = d.res; $("pf").value = ""; $("pf").click(); }
+};
+
+// Computer Vision Fix Verification with After Photo
+$("pf").onchange = async e => {
+  const f = e.target.files[0], i = db.find(x => x.id === resId);
+  if (!f || !i) return;
+  $("amsg").textContent = "Verifying resolution proof photo with AI…";
+  try {
+    const a = await readImg(f);
+    let vr = "Official after-photo logged and verified by field engineer.";
+    const k = $("key").value.trim();
+    if (k && i.img) {
+      try {
+        const o = await g(k, 'Compare the BEFORE (first) and AFTER (second) photos for civic issue: "' + i.title + '". Return JSON {"fixed":boolean,"reason":"one sentence"}', [i.img, a]);
+        if (!o.fixed) {
+          $("amsg").textContent = "❌ Gemini Vision rejected fix: " + o.reason;
+          alert("Gemini Computer Vision detected that the problem is NOT yet resolved:\n" + o.reason);
+          return;
+        }
+        vr = "Gemini Vision verified fix: " + o.reason;
+      } catch (x) {
+        vr = "After-photo attached (Gemini check bypassed).";
+      }
+    }
+    i.after = a; i.vr = vr; i.status = "Resolved"; i.conf = false;
+    i.log.push(["Resolved by Field Authority with proof photo", Date.now()]);
+    save();
+    $("amsg").textContent = "✔ " + i.id + " marked resolved. " + vr;
+    rAdmin();
+    toast("✔ Issue " + i.id + " resolved!");
+  } catch (x) {
+    $("amsg").textContent = "Could not process image.";
+  }
+};
+
+$("gi").onclick = async () => {
+  const k = $("key").value.trim();
+  if (!k) {
+    alert("Please enter a Gemini API Key under Settings to generate live cloud LLM strategic insights.");
+    return;
+  }
+  $("gi").disabled = true;
+  $("gi").textContent = "⏳ Generating AI Insights…";
+  try {
+    const o = await g(k, 'You advise a city municipal commissioner. From these open civic issues return JSON {"insights":[3 short, actionable, bulleted executive strategic recommendations for city council]}. Issues: ' + JSON.stringify(db.filter(i => i.status !== "Resolved").map(i => ({ t: i.title, c: i.cat, loc: i.loc, n: i.n, score: score(i) }))));
+    $("ins").innerHTML = "<ul>" + o.insights.map(x => "<li style='margin-bottom:8px'>" + esc(x) + "</li>").join("") + "</ul>";
+    toast("✨ Gemini Strategic Insights refreshed!");
+  } catch (e) {
+    alert("Gemini call error: " + e.message);
+  }
+  $("gi").disabled = false;
+  $("gi").textContent = "✨ Refresh AI Strategy Report";
+};
+
+// --------------------- SUBMIT COMPLAINT & SMART MERGE ---------------------
+$("go").onclick = async () => {
+  const t = $("t").value.trim(), d = $("d").value.trim(), l = $("l").value.trim();
+  if (!t || !d || !l) {
+    $("msg").textContent = "⚠️ Please fill in Title, Description, and Location.";
+    return;
+  }
+  $("go").disabled = true;
+  $("msg").textContent = "🤖 Triage in progress (Gemini classification & public safety analysis)…";
+  let a, note = "";
+  const k = $("key").value.trim();
+  if (k) {
+    try {
+      const o = await g(k, 'You triage civic complaints (text may be in any language). Return JSON {"category":one of ' + JSON.stringify(Object.keys(CATS)) + ',"department":string,"safety":number 0-40 danger to public,"confidence":number 0-100 how sure you are of the category,"sensitive":number 0-20 (school/hospital nearby=20, market/bus/temple=10),"photoMatches":boolean or null if no photo,"english":"one-line English translation","reasoning":"one sentence"}. Title: ' + t + '. Description: ' + d + '. Location: ' + l, img ? [img] : []);
+      a = {
+        category: CATS[o.category] ? o.category : "Other",
+        safety: clamp(o.safety, 0, 40),
+        sensitive: clamp(o.sensitive, 0, 20),
+        pm: typeof o.photoMatches === "boolean" ? o.photoMatches : null,
+        english: o.english || "",
+        confidence: (o.confidence == null || isNaN(+o.confidence)) ? null : (+o.confidence <= 1 ? Math.round(+o.confidence * 100) : clamp(o.confidence, 0, 100)),
+        reasoning: o.reasoning || "",
+        source: "Google Gemini AI"
+      };
+      a.department = o.department || CATS[a.category];
+    } catch (e) {
+      console.error(e);
+      note = " (Gemini call failed: " + e.message + "; used local engine)";
+    }
+  }
+  if (!a) a = localAI(t + " " + d + " " + l);
+  const uc = $("c").value;
+  if (uc && uc !== a.category) { a.category = uc; a.department = CATS[uc]; }
+
+  const now = Date.now();
+  const tok = s => s.toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) || [];
+  const lt = tok(l);
+
+  // Duplicate Check: Same category and nearby coordinates or landmark
+  const dup = db.find(i => i.status !== "Resolved" && i.cat === a.category && Math.hypot((i.lat || currentLat) - currentLat, (i.lng || currentLng) - currentLng) < 0.003);
+
+  let it;
+  if (dup) {
+    dup.n++;
+    dup.safety = Math.max(dup.safety, a.safety);
+    dup.sens = Math.max(dup.sens, a.sensitive);
+    dup.log.push(["Another citizen reported this (" + dup.n + " total affected)", now]);
+    if (img && !dup.img) dup.img = img;
+    it = dup;
+  } else {
+    const dmeta = (DEPTS_INFO[a.department] || DEPTS_INFO["General Municipal Administration"]);
+    it = {
+      id: nid(), title: t, desc: d, loc: l,
+      lat: currentLat, lng: currentLng,
+      cat: a.category, dept: a.department,
+      officer: dmeta.officer,
+      crew: dmeta.crews[0],
+      phone: dmeta.phone,
+      email: dmeta.email,
+      safety: a.safety, sens: a.sensitive,
+      n: 1, status: "Reported", why: a.reasoning,
+      ai: { source: a.source, confidence: a.confidence == null ? null : a.confidence, category: a.category, reasoning: a.reasoning, english: a.english || "", photoMatch: a.pm },
+      ts: now, log: [["Reported by citizen", now], ["Automated Dispatch Alert sent to " + dmeta.officer, now]], img
+    };
+    db.push(it);
+  }
+  save();
+  addKarma(25);
+  addMine(it.id);
+  const p = priOf(it);
+
+  $("res").innerHTML = '<div class="card ai"><h2>' + (dup ? "Merged with Existing Complaint ✔" : "Complaint Successfully Submitted ✔") + '</h2>' +
+    '<div class="meta">Ticket ID: <b>' + it.id + '</b> · Triaged by: <b>' + esc(a.source) + esc(note) + '</b> (+25 Civic Karma earned!)</div>' +
+    (dup ? '<p style="margin:8px 0; color:var(--ac); font-weight:700"><b>⚡ Duplicate Merging:</b> Matches existing complaint <b>' + esc(it.title) + '</b>. Aggregated to <b>' + it.n + ' affected citizens</b>, automatically increasing municipal priority!</p>' : "") +
+    (a.pm === false ? '<p class="late" style="margin:6px 0">⚠ Gemini Vision noted the uploaded photo may not match this problem description.</p>' : "") +
+    '<p style="margin:8px 0"><b>Category:</b> ' + esc(it.cat) + '<br>' +
+    '<b>Priority:</b> <span class="pill ' + p + '">' + p + '</span> (Target SLA: ' + SLA[p] + 'h)<br>' +
+    '<b>Assigned Department:</b> <b>' + esc(it.dept || CATS[it.cat]) + '</b><br>' +
+    '<b>AI Confidence:</b> ' + (a.confidence == null ? "n/a" : Math.round(a.confidence) + "%") + ' <span class="meta">(' + esc(a.source) + ')</span></p>' +
+    (a.english ? '<div style="background:rgba(99,102,241,0.08); border:1.5px solid rgba(99,102,241,0.25); border-radius:10px; padding:10px 14px; margin:10px 0;">' +
+      '<b style="color:#4f46e5">🌐 AI Multilingual Voice &amp; Text Translation (Official Dispatch):</b><br>' +
+      '<span style="color:var(--tx); font-weight:700">Official English Redressal Summary:</span> <i>\"' + esc(a.english) + '\"</i>' +
+    '</div>' : '') +
+    '<p style="margin:8px 0"><b>AI Hazard Rationale:</b> ' + esc(a.reasoning) + '</p>' +
+    bar(it) + steps(it.status) +
+    
+    '<div class="dispatch-banner" style="margin-top:12px">' +
+      '<div style="font-weight:800; color:#15803d; margin-bottom:6px">🚨 INSTANT AUTHORITY DISPATCH ACTIVATED</div>' +
+      '<div class="meta" style="color:var(--tx); margin-bottom:8px">' +
+        '• <b>Nodal Officer:</b> ' + esc(it.officer || (DEPTS_INFO[it.dept]||{}).officer || "") + '<br>' +
+        '• <b>Field Response Crew:</b> ' + esc(it.crew || (DEPTS_INFO[it.dept]||{}).crews[0] || "") + '<br>' +
+        '• <b>Direct Helpline:</b> ' + esc(it.phone || (DEPTS_INFO[it.dept]||{}).phone || "") + '<br>' +
+        '• <b>Official Department Email:</b> ' + esc(it.email || (DEPTS_INFO[it.dept]||{}).email || "") +
+      '</div>' +
+      '<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center">' +
+        (getPhone(it) ? ('<button type="button" class="btn call" onclick="callTicket(\'' + it.id + '\')">📞 Call Officer Direct (' + esc(getPhone(it)) + ')</button>') : '') +
+        '<a href="' + getWaLink(it, p) + '" target="_blank" class="btn wa">💬 Message Officer on WhatsApp</a>' +
+        '<a href="' + getMailLink(it, p) + '" class="btn em">📧 Email Work Order</a>' +
+      '</div>' +
+    '</div>' +
+
+    '<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px">' +
+      '<button class="btn" onclick="openTicket(\'' + it.id + '\')">🔎 Track ' + it.id + ' →</button>' +
+      '<button class="btn s" onclick="view(\'track\')">View in Live Tracking Feed →</button>' +
+    '</div></div>';
+
+  $("msg").textContent = "";
+  $("go").disabled = false;
+  toast("✔ Ticket " + it.id + " registered!");
+};
+
+// Toast Notification
+function toast(msg) {
+  const existing = document.querySelector(".toast");
+  if (existing) existing.remove();
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.innerHTML = "<span>🔔 " + esc(msg) + "</span>";
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+// Search & Nav Hooks
+$("q").oninput = rTrack;
+$("fs").onchange = rTrack;
+$("nav").onclick = e => { if (e.target.dataset.v) view(e.target.dataset.v); };
+Object.keys(CATS).forEach(k => $("c").insertAdjacentHTML("beforeend", "<option>" + esc(k) + "</option>"));
+
+$("key").oninput = () => {
+  const has = $("key").value.trim().length > 0;
+  $("aimode-text").textContent = has ? "AI: Gemini AI (Live)" : "AI: Local Engine (Ready)";
+  $("aimode").style.color = has ? "#10b981" : "#6366f1";
+};
+
+// ====================== AI ANALYSIS PANEL ======================
+function aiInfo(i) {
+  if (i.ai) return i.ai;
+  const a = localAI(i.title + " " + i.desc + " " + i.loc);
+  return { source: "Local AI Engine", confidence: a.confidence, category: i.cat, reasoning: i.why || a.reasoning, english: "", photoMatch: null };
+}
+function aiShort(i) {
+  const a = aiInfo(i);
+  return esc(a.source || "Local AI Engine") + (a.confidence == null ? "" : " · " + Math.round(a.confidence) + "% confidence");
+}
+function aiPanel(i) {
+  const a = aiInfo(i), live = /gemini/i.test(a.source || "");
+  const conf = a.confidence == null ? null : Math.round(a.confidence);
+  const cc = conf == null ? "var(--mut)" : (conf >= 80 ? "#10b981" : (conf >= 60 ? "#f59e0b" : "#ef4444"));
+  return '<div class="ai-panel"><div class="ai-head"><b>🧠 AI Analysis</b><span class="pill ' + (live ? "Low" : "Medium") + '">' + (live ? "✨ " : "⚙️ ") + esc(a.source || "Local AI Engine") + '</span></div>' +
+    '<div class="ai-grid">' +
+      '<div><span class="k">Category</span><b>' + esc(a.category || i.cat) + '</b></div>' +
+      '<div><span class="k">Confidence</span><b style="color:' + cc + '">' + (conf == null ? "n/a" : conf + "%") + '</b>' + (conf == null ? "" : '<div class="bar" style="margin-top:4px"><span style="width:' + conf + '%;background:' + cc + '"></span></div>') + '</div>' +
+      '<div><span class="k">Public hazard</span><b>' + i.safety + '/40</b></div>' +
+      '<div><span class="k">Zone sensitivity</span><b>' + i.sens + '/20</b></div>' +
+    '</div>' +
+    '<div class="meta" style="margin-top:8px"><b>Reasoning:</b> ' + esc(a.reasoning || i.why || "") + '</div>' +
+    (a.english ? '<div class="meta" style="margin-top:4px"><b>🌐 English:</b> ' + esc(a.english) + '</div>' : '') +
+    (a.photoMatch === true ? '<div class="meta" style="color:#10b981;font-weight:700;margin-top:4px">✔ Photo matches the description</div>' : (a.photoMatch === false ? '<div class="meta late" style="margin-top:4px">⚠ Photo may not match the description</div>' : '')) +
+  '</div>';
+}
+
+// ====================== SLA AUTO-ESCALATION ======================
+const NEXT_PRI = { Low: "Medium", Medium: "High", High: "Critical", Critical: "Critical" };
+function autoEscalate() {
+  let n = 0;
+  db.forEach(i => {
+    if (i.status === "Resolved" || i.esc || !late(i)) return;
+    const from = priOf(i), to = NEXT_PRI[from];
+    i.esc = true; i.escFrom = from;
+    if (to !== from) i.ov = to;
+    i.log.push(["🚨 Auto-escalated: " + from + " SLA of " + SLA[from] + "h breached (" + Math.round(hrs(i)) + "h open). " + (to !== from ? "Priority raised to " + to + " and flagged" : "Flagged") + " to the Municipal Commissioner for immediate action.", Date.now()]);
+    n++;
+  });
+  if (n) { save(); toast("🚨 " + n + " overdue complaint(s) auto-escalated to the Commissioner"); }
+  return n;
+}
+setInterval(() => {
+  if (autoEscalate()) {
+    if (!$("v-track").classList.contains("hide")) rTrack();
+    if (!$("v-admin").classList.contains("hide")) rAdmin();
+  }
+}, 60000);
+
+// ====================== TRACK BY TICKET ID ======================
+let trackedId = null;
+const getMine = () => { try { return JSON.parse(localStorage.getItem("cr_mine") || "[]"); } catch (e) { return []; } };
+function addMine(id) {
+  const m = getMine().filter(x => x !== id);
+  m.unshift(id);
+  try { localStorage.setItem("cr_mine", JSON.stringify(m.slice(0, 8))); } catch (e) {}
+}
+function normId(s) {
+  const t = String(s || "").trim().toUpperCase().replace(/\s+/g, "");
+  if (/^\d{3,}$/.test(t)) return "CR-" + t;
+  return t.replace(/^CR(\d)/, "CR-$1");
+}
+function slaLine(i) {
+  const p = priOf(i), t = SLA[p], h = Math.round(hrs(i));
+  const txt = i.status === "Resolved"
+    ? "✔ Resolved in " + h + "h (target " + t + "h)"
+    : (h > t ? "⚠ Overdue by " + (h - t) + "h" : "⏳ " + (t - h) + "h left") + " (target " + t + "h, open " + h + "h)";
+  return '<div class="card" style="padding:12px 16px; margin-bottom:10px"><b>Ticket ' + esc(i.id) + '</b> — ' + txt + '</div>';
+}
+function renderTracked() {
+  const mine = getMine().filter(id => db.some(x => x.id === id));
+  $("my-tickets").innerHTML = mine.length
+    ? '<span class="sub" style="font-weight:700">Your recent tickets:</span> ' + mine.map(id => '<button type="button" class="btn s" data-track="' + esc(id) + '" style="padding:3px 10px;font-size:12px">' + esc(id) + '</button>').join(" ")
+    : "";
+  const box = $("track-result");
+  if (!trackedId) { box.innerHTML = ""; return; }
+  const i = db.find(x => x.id === trackedId);
+  box.innerHTML = i
+    ? slaLine(i) + ticketCard(i)
+    : '<div class="card sub">❌ No complaint found with ID <b>' + esc(trackedId) + '</b>. Use the ID shown after submitting (format CR-1001).</div>';
+}
+function trackById(raw) {
+  trackedId = normId(raw);
+  $("tid").value = trackedId;
+  renderTracked();
+}
+function openTicket(id) { view("track"); trackById(id); }
+$("btn-track").onclick = () => {
+  if (!$("tid").value.trim()) { toast("Enter a ticket ID like CR-1003"); return; }
+  trackById($("tid").value);
+};
+$("tid").onkeydown = e => { if (e.key === "Enter") $("btn-track").click(); };
+$("tid").oninput = () => { if (!$("tid").value.trim()) { trackedId = null; renderTracked(); } };
+$("my-tickets").onclick = e => { if (e.target.dataset.track) trackById(e.target.dataset.track); };
+
+// ====================== CSV EXPORT ======================
+function csvCell(v) {
+  let t = String(v == null ? "" : v).replace(/\r?\n/g, " ");
+  if (typeof v === "string" && /^[=+\-@\t]/.test(t)) t = "'" + t;
+  return '"' + t.replace(/"/g, '""') + '"';
+}
+function buildCsv() {
+  const head = ["Ticket ID", "Title", "Category", "Department", "Nodal Officer", "Crew", "Priority", "Priority Score", "Status", "Citizens Affected", "Location", "Latitude", "Longitude", "Reported At", "Hours Open", "SLA Target Hours", "SLA Breached", "Auto-Escalated", "AI Source", "AI Confidence %", "Description"];
+  const rows = db.slice().sort((a, b) => score(b) - score(a)).map(i => {
+    const p = priOf(i), a = aiInfo(i);
+    return [i.id, i.title, i.cat, i.dept || CATS[i.cat], i.officer || "", i.crew || "", p, score(i), i.status, i.n, i.loc,
+      i.lat == null ? "" : +i.lat.toFixed(5), i.lng == null ? "" : +i.lng.toFixed(5), new Date(i.ts).toISOString(),
+      +hrs(i).toFixed(1), SLA[p], late(i) ? "Yes" : "No", i.esc ? "Yes" : "No", a.source || "", a.confidence == null ? "" : Math.round(a.confidence), i.desc];
+  });
+  return "\ufeff" + [head].concat(rows).map(r => r.map(csvCell).join(",")).join("\r\n");
+}
+function exportCsv() {
+  const blob = new Blob([buildCsv()], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "civicresolve_complaints_" + new Date().toISOString().slice(0, 10) + ".csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast("⬇ Exported " + db.length + " complaints to CSV");
+}
+$("btn-csv").onclick = exportCsv;
+
+// ====================== ADMIN ANALYTICS CHARTS ======================
+function rCharts() {
+  const cats = Object.keys(CATS).map(c => {
+    const l = db.filter(i => i.cat === c);
+    return { c: c, open: l.filter(i => i.status !== "Resolved").length, done: l.filter(i => i.status === "Resolved").length };
+  }).filter(x => x.open + x.done > 0).sort((a, b) => (b.open + b.done) - (a.open + a.done));
+  const mx = Math.max(1, ...cats.map(x => x.open + x.done));
+  $("chart-cat").innerHTML = cats.length
+    ? cats.map(x => '<div class="hbar-row"><span class="hbar-label">' + esc(x.c) + '</span><div class="hbar-track" role="img" aria-label="' + esc(x.c) + ': ' + x.open + ' open, ' + x.done + ' resolved"><span style="width:' + (x.open / mx * 100) + '%;background:#6366f1"></span><span style="width:' + (x.done / mx * 100) + '%;background:#10b981"></span></div><b class="hbar-val">' + (x.open + x.done) + '</b></div>').join("") +
+      '<div class="legend"><span><i style="background:#6366f1"></i>Open</span><span><i style="background:#10b981"></i>Resolved</span></div>'
+    : '<div class="sub">No complaints yet.</div>';
+
+  const open = db.filter(i => i.status !== "Resolved");
+  const rows = ["Critical", "High", "Medium", "Low"].map(p => {
+    const l = open.filter(i => priOf(i) === p);
+    return { p: p, n: l.length, avg: l.length ? l.reduce((t, i) => t + hrs(i), 0) / l.length : 0 };
+  }).filter(r => r.n);
+  const done = db.filter(i => i.status === "Resolved");
+  const avgDone = done.length ? done.reduce((t, i) => t + hrs(i), 0) / done.length : null;
+  $("chart-sla").innerHTML = rows.length
+    ? rows.map(r => {
+        const t = SLA[r.p], ratio = r.avg / t, col = ratio > 1 ? "#ef4444" : (ratio > 0.75 ? "#f59e0b" : "#10b981");
+        return '<div class="hbar-row wide"><span class="hbar-label"><span class="pill ' + r.p + '">' + r.p + '</span> ×' + r.n + '</span><div class="hbar-track sla" role="img" aria-label="' + r.p + ': average ' + Math.round(r.avg) + ' hours open against a ' + t + ' hour target"><span style="width:' + (Math.min(ratio, 2) / 2 * 100) + '%;background:' + col + '"></span><i class="sla-mark" title="SLA target"></i></div><b class="hbar-val" style="font-size:11.5px">' + Math.round(r.avg) + 'h / ' + t + 'h</b></div>';
+      }).join("") +
+      '<div class="legend"><span><i style="background:#10b981"></i>Within SLA</span><span><i style="background:#f59e0b"></i>Near limit</span><span><i style="background:#ef4444"></i>Overdue</span><span>▏ = SLA target</span></div>' +
+      (avgDone == null ? "" : '<div class="meta" style="margin-top:8px">Average time to resolve: <b>' + Math.round(avgDone) + 'h</b> across ' + done.length + ' resolved complaint' + (done.length > 1 ? "s" : "") + '.</div>')
+    : '<div class="sub">No open complaints. 🎉</div>';
+}
+
+// Role toggle (Citizen / Admin)
+const ADMIN_PIN = "1234";
+function applyRole() {
+  document.querySelector('#nav button[data-v="admin"]').classList.toggle("hide", role !== "admin");
+  document.querySelectorAll("#role-toggle button").forEach(b => b.classList.toggle("on", b.dataset.role === role));
+}
+function setRole(r) {
+  role = r;
+  try { sessionStorage.setItem("cr_role", r); } catch (e) {}
+  applyRole();
+}
+$("role-toggle").onclick = e => {
+  const r = e.target.dataset.role;
+  if (!r || r === role) return;
+  if (r === "admin") {
+    const pin = prompt("Enter municipal admin PIN (demo PIN: " + ADMIN_PIN + ")");
+    if (pin === null) return;
+    if (pin !== ADMIN_PIN) { toast("❌ Incorrect PIN."); return; }
+    setRole("admin");
+    toast("🏛️ Admin mode enabled.");
+    view("admin");
+  } else {
+    setRole("citizen");
+    toast("👤 Switched to Citizen view.");
+    if (!$("v-admin").classList.contains("hide")) view("report");
+  }
+};
+applyRole();
+autoEscalate();
+
+// Initialize
+const h = (location.hash || "").slice(1);
+view(["report", "track", "admin"].includes(h) ? h : "report");
+
+$("cam-modal").onclick = e => { if (e.target === $("cam-modal")) closeCam(); };
+$("call-sim-modal").onclick = e => { if (e.target === $("call-sim-modal")) endCall(); };
+
+setTimeout(initLiveMap, 200);
+</script>
+
+</body>
+</html>
